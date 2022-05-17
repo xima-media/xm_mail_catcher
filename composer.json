@@ -1,0 +1,54 @@
+{
+  "name": "xima/xm-mail-catcher",
+  "type": "typo3-cms-extension",
+  "description": "Display mails that were send to log file",
+  "homepage": "https://www.xima.de",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Maik Schneider",
+      "role": "Developer",
+      "email": "mas@xima"
+    }
+  ],
+  "keywords": [
+    "typo3",
+    "cms",
+    "mail"
+  ],
+  "require": {
+    "typo3/cms-core": ">=v11.0.0"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master",
+    "typo3/cms-base-distribution": "^11.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Xima\\XmMailCatcher\\": "Classes"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "cms-package-dir": "{$vendor-dir}/typo3/cms",
+      "web-dir": "public",
+      "extension-key": "xm_mail_catcher"
+    }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "allow-plugins": {
+      "typo3/cms-composer-installers": true,
+      "typo3/class-alias-loader": true
+    }
+  },
+  "scripts": {
+    "typo3-cms-scripts": [
+      "ln -sfn ../../../ public/typo3conf/ext/xm_mail_catcher",
+      "vendor/bin/typo3cms install:fixfolderstructure"
+    ],
+    "post-autoload-dump": [
+      "@typo3-cms-scripts"
+    ]
+  }
+}
