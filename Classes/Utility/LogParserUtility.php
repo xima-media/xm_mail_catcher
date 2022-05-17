@@ -27,7 +27,24 @@ class LogParserUtility
 
     protected function extractMessages(): void
     {
+        if (!$this->fileContent) {
+            return;
+        }
+
         preg_match_all('/(?:---------- MESSAGE FOLLOWS ----------\n)(.*)(?:------------ END MESSAGE ------------)+/Ums', $this->fileContent, $messages);
+
+        if (!isset($messages[1])) {
+            return;
+        }
+
+        foreach($messages[1] as $messageString) {
+            // remove line breaks that cut strings
+            $messageString = preg_replace("/((\=(\'|\")\n)^b\'|\")/Ums", '', $messageString);
+            // remove b' '
+            $messageString = preg_replace("/(^b\'|\")(.*)(\'|\"$)/Ums", '$2', $messageString);
+
+        }
+
 
         $e = '';
     }
