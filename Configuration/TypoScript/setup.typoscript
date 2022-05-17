@@ -1,0 +1,10 @@
+module.tx_mailcatcher {
+	view {
+		templateRootPaths {
+			10 = EXT:tx_mailcatcher/Resources/Private/Backend/Templates/
+		}
+		layoutRootPaths {
+			10 = EXT:tx_mailcatcher/Resources/Private/Backend/Layouts/
+		}
+	}
+}
