@@ -33,7 +33,7 @@ call_user_func(
             [
                 'access' => 'admin',
                 'iconIdentifier' => 'module-mailcatcher',
-                'labels' => 'LLL:EXT:xm_mail_catcher/Resources/Private/Language/locallang.xlf',
+                'labels' => 'LLL:EXT:xm_mail_catcher/Resources/Private/Language/locallang_mod.xlf',
                 'navigationComponentId' => '',
                 'inheritNavigationComponentFromMainModule' => false,
             ]
