@@ -4,7 +4,9 @@ namespace Xima\XmMailCatcher\Controller;
 
 use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use Xima\XmMailCatcher\Utility\LogReaderUtility;
 
 class BackendController extends ActionController
 {
@@ -18,7 +20,11 @@ class BackendController extends ActionController
 
     public function indexAction(): ResponseInterface
     {
-        $this->view->assign('someVar', 'someContent');
+        $parser = GeneralUtility::makeInstance(LogReaderUtility::class);
+        $mails = $parser->getMails();
+
+        $this->view->assign('mails', $mails);
+
         $moduleTemplate = $this->moduleTemplateFactory->create($this->request);
         $moduleTemplate->setContent($this->view->render());
         return $this->htmlResponse($moduleTemplate->renderContent());
