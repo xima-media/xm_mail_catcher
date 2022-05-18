@@ -1,5 +1,7 @@
 
 public
+node_modules
 !Resources/Public
+Resources/Public/JavaScript
 var
 vendor
