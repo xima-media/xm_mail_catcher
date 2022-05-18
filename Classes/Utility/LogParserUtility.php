@@ -5,12 +5,18 @@ namespace Xima\XmMailCatcher\Utility;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
+use Xima\XmMailCatcher\Domain\Model\Dto\JsonDateTime;
 use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 
 class LogParserUtility
 {
 
     protected string $fileContent = '';
+
+    /**
+     * @var array<MailMessage>
+     */
+    protected array $messages = [];
 
     protected function loadLogFile(): void
     {
@@ -23,6 +29,19 @@ class LogParserUtility
         }
 
         $this->fileContent = file_get_contents($absolutePath);
+    }
+
+    protected function emptyLogFile(): void
+    {
+        $logPath = GeneralUtility::makeInstance(ExtensionConfiguration::class)
+            ->get('xm_mail_catcher', 'logPath');
+        $absolutePath = Environment::getProjectPath() . $logPath;
+
+        if (!file_exists($absolutePath)) {
+            return;
+        }
+
+        file_put_contents($absolutePath, '');
     }
 
     protected function extractMessages(): void
@@ -44,16 +63,18 @@ class LogParserUtility
             // remove b' '
             $messageString = preg_replace("/(^b\'|\")(.*)(\'|\"$)/Ums", '$2', $messageString);
             // convert to object
-            $dto = self::convertToDto($messageString);
-            // save to file
+            $this->messages[] = self::convertToDto($messageString);
         }
-
-        $e = '';
     }
 
-    protected function writeDtoToFile(MailMessage $mailMessage): void
+    protected function writeMessagesToFile(): void
     {
-        
+        foreach ($this->messages as $message) {
+            $fileContent = json_encode($message);
+            $fileName = $message->getFileName();
+            $filePath = self::getTempPath() . $fileName;
+            GeneralUtility::writeFileToTypo3tempDir($filePath, $fileContent);
+        }
     }
 
     protected static function convertToDto(string $msg): MailMessage
@@ -93,7 +114,7 @@ class LogParserUtility
         preg_match('/(?:^Date:\s)(.*)(?:\n)/m', $msg, $date);
         if (isset($date[1])) {
             try {
-                $date = new \DateTime($date[1]);
+                $date = new JsonDateTime($date[1]);
                 $dto->date = $date;
             } catch (\Exception $e) {
             }
@@ -129,15 +150,33 @@ class LogParserUtility
         return Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
     }
 
-    public function cleanUp()
-    {
-
-    }
-
     public function run(): void
     {
         $this->loadLogFile();
         $this->extractMessages();
-        $this->cleanUp();
+        $this->writeMessagesToFile();
+        $this->emptyLogFile();
+    }
+
+    public function loadMessages(): void
+    {
+        $messageFiles = array_filter(scandir(self::getTempPath()), function($filename) {
+            return strpos($filename, '.json');
+        });
+
+        foreach ($messageFiles as $messageFile) {
+            $fileContent = file_get_contents(self::getTempPath() . '/' . $messageFile);
+            $data = json_decode($fileContent, true);
+            $message = new MailMessage();
+            $message->loadFromJson($data);
+
+            $this->messages[] = $message;
+        }
+    }
+
+    public function getMessages(): array
+    {
+        $this->loadMessages();;
+        return $this->messages;
     }
 }

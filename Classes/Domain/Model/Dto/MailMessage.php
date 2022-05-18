@@ -22,4 +22,25 @@ class MailMessage
 
     public string $bodyHtml = '';
 
+    public function getFileName(): string
+    {
+        $name = hash('md5', $this->messageId);
+
+        if ($this->date) {
+            $name = $this->date->getTimestamp() . '-' . $name . '.json';
+        }
+
+        return $name;
+    }
+
+    public function loadFromJson(array $data): void
+    {
+        foreach ($data as $key => $value) {
+            if ($key === 'date') {
+                $this->date = new \DateTime($value);
+                continue;
+            }
+            $this->{$key} = $value;
+        }
+    }
 }
