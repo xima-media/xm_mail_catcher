@@ -1,1 +1,80 @@
-<f:debug>{_all}</f:debug>
+<div class="container">
+	<div class="row justify-content-md-center">
+		<div class="col"></div>
+		<div class="col col-lg-10">
+			<h1>Mail Log</h1>
+		</div>
+	</div>
+	<div class="row justify-content-md-center">
+		<div class="col">
+			<ul class="list-group">
+				<li class="list-group-item">Inbox ({mails->f:count()})</li>
+			</ul>
+		</div>
+		<div class="col col-lg-10">
+
+			<f:if condition="!{mails}">
+				<f:be.infobox title="No messages" state="-1">There are currently no messages to display</f:be.infobox>
+			</f:if>
+
+			<f:if condition="{mails}">
+				<div class="panel-group panel-hover" id="messages">
+					<f:for each="{mails}" iteration="i" as="mail">
+						<div class="panel">
+							<div class="panel-heading" id="h{i.cycle}">
+								<div class="form-irre-header">
+									<button class="form-irre-header-cell form-irre-header-button" aria-expanded="false">
+										<div class="form-irre-header-body"
+											 data-bs-toggle="collapse"
+											 data-bs-target="#m{i.cycle}">
+											<strong>{mail.displayFromAddress}</strong><br/>
+											<span>{mail.subject}</span>
+										</div>
+									</button>
+									<div class="form-irre-header-cell form-irre-header-control">
+										<div class="btn-group btn-group-sm" role="group">
+											<button type="button" class="btn btn-default" title="Delete mail">
+												<core:icon identifier="actions-delete" size="small"/>
+												</span>
+											</button>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div id="m{i.cycle}" class="panel-collapse collapse">
+								<div class="tab-content">
+									<div class="tab-header">
+										<div class="row">
+											<div class="col">
+												<span><strong>To:</strong> {mail.displayToAddress}<br /><strong>Date:</strong> <f:format.date format="H:i, d.m.Y">{mail.date}</f:format.date></span>
+											</div>
+											<div class="col text-right">
+												<div class="btn-group">
+													<a class="btn btn-primary">Plain</a>
+													<a class="btn btn-outline-primary">HTML</a>
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="form-section">
+										<p>{mail.bodyPlain->f:format.nl2br()}</p>
+									</div>
+								</div>
+							</div>
+						</div>
+					</f:for>
+				</div>
+			</f:if>
+		</div>
+	</div>
+</div>
+
+<style>
+	.tab-header {
+		background: #fff;
+		padding: 10px;
+	}
+	.btn-outline-primary:hover {
+		color: #FFF;
+	}
+</style>

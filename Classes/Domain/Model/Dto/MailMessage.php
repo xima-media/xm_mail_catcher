@@ -43,4 +43,20 @@ class MailMessage
             $this->{$key} = $value;
         }
     }
+
+    public function getDisplayFromAddress(): string
+    {
+        if ($this->fromName) {
+            return $this->fromName . ' <' . $this->from . '>';
+        }
+        return $this->from;
+    }
+
+    public function getDisplayToAddress(): string
+    {
+        if ($this->toName) {
+            return $this->toName . ' <' . $this->to . '>';
+        }
+        return $this->to;
+    }
 }
