@@ -28,9 +28,7 @@ module.exports = {
 		}
 	},
 	externals: {
-		'TYPO3/CMS/Backend/Modal': 'TYPO3/CMS/Backend/Modal',
-		'TYPO3/CMS/Backend/Icons': 'TYPO3/CMS/Backend/Icons',
-		'TYPO3/CMS/Backend/Notification': 'TYPO3/CMS/Backend/Notification',
+		'TYPO3/CMS/Core/Ajax/AjaxRequest': 'TYPO3/CMS/Core/Ajax/AjaxRequest',
 		'jquery': 'jquery'
 	}
 };

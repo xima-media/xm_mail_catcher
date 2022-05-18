@@ -4,6 +4,7 @@ namespace Xima\XmMailCatcher\Utility;
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
+use TYPO3\CMS\Core\Http\Message;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Xima\XmMailCatcher\Domain\Model\Dto\JsonDateTime;
 use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
@@ -129,11 +130,11 @@ class LogParserUtility
         foreach ($messageParts as $part) {
             if (strpos($part, 'Content-Type: text/plain')) {
                 $body = self::removeFirstThreeLines($part);
-                $dto->bodyPlain = $body;
+                $dto->bodyPlain = quoted_printable_decode($body);
             }
             if (strpos($part, 'Content-Type: text/html')) {
                 $body = self::removeFirstThreeLines($part);
-                $dto->bodyHtml = $body;
+                $dto->bodyHtml = quoted_printable_decode($body);
             }
         }
 
@@ -164,13 +165,8 @@ class LogParserUtility
             return strpos($filename, '.json');
         });
 
-        foreach ($messageFiles as $messageFile) {
-            $fileContent = file_get_contents(self::getTempPath() . '/' . $messageFile);
-            $data = json_decode($fileContent, true);
-            $message = new MailMessage();
-            $message->loadFromJson($data);
-
-            $this->messages[] = $message;
+        foreach ($messageFiles as $filename) {
+            $this->messages[] = $this->getMessageByFilename($filename);
         }
     }
 
@@ -178,5 +174,21 @@ class LogParserUtility
     {
         $this->loadMessages();;
         return $this->messages;
+    }
+
+    public function getMessageByFilename(string $filename): ?MailMessage
+    {
+        $file = self::getTempPath() . '/' . $filename;
+
+        if (!file_exists($file)) {
+            return null;
+        }
+
+        $fileContent = file_get_contents(self::getTempPath() . '/' . $filename);
+        $data = json_decode($fileContent, true);
+        $message = new MailMessage();
+        $message->loadFromJson($data);
+
+        return $message;
     }
 }

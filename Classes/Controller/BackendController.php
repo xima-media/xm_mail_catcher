@@ -6,6 +6,7 @@ use Psr\Http\Message\ResponseInterface;
 use TYPO3\CMS\Backend\Template\ModuleTemplateFactory;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 use Xima\XmMailCatcher\Utility\LogParserUtility;
 
 class BackendController extends ActionController
@@ -24,7 +25,7 @@ class BackendController extends ActionController
         $parser->run();
         $mails = $parser->getMessages();
 
-        $pageRenderer = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
+        $pageRenderer = GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/XmMailCatcher/MailCatcher');
 
         $this->view->assign('mails', $mails);
