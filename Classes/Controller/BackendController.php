@@ -21,7 +21,11 @@ class BackendController extends ActionController
     public function indexAction(): ResponseInterface
     {
         $parser = GeneralUtility::makeInstance(LogParserUtility::class);
+        $parser->run();
         $mails = $parser->getMessages();
+
+        $pageRenderer = \TYPO3\CMS\Core\Utility\GeneralUtility::makeInstance(\TYPO3\CMS\Core\Page\PageRenderer::class);
+        $pageRenderer->loadRequireJsModule('TYPO3/CMS/XmMailCatcher/MailCatcher');
 
         $this->view->assign('mails', $mails);
 

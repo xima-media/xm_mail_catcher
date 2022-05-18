@@ -5,7 +5,7 @@ module.exports = {
 	devtool: 'inline-source-map',
 	watch: true,
 	entry: {
-		BackendModule: './Resources/Private/TypeScript/BackendModule.ts'
+		MailCatcher: './Resources/Private/TypeScript/MailCatcher.ts'
 	},
 	output: {
 		filename: 'Resources/Public/JavaScript/[name].js',
@@ -24,8 +24,6 @@ module.exports = {
 	resolve: {
 		extensions: ['.tsx', '.ts', '.js'],
 		alias: {
-			'TYPO3/CMS/Backend': path.resolve(__dirname, 'typo3_src/TypeScript/backend/Resources/Public/TypeScript'),
-			'TYPO3/CMS/Core': path.resolve(__dirname, 'typo3_src/TypeScript/core/Resources/Public/TypeScript'),
 			'TYPO3/CMS/XmMailCatcher': path.resolve(__dirname, 'Resources/Private/TypeScript')
 		}
 	},
