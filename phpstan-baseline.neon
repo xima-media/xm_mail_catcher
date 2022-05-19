@@ -51,7 +51,7 @@ parameters:
 			path: Classes/Utility/LogParserUtility.php
 
 		-
-			message: "#^Parameter \\#1 \\$array of function array_filter expects array, array\\<int, string\\>\\|false given\\.$#"
+			message: "#^Parameter \\#1 \\$input of function array_filter expects array, array\\<int, string\\>\\|false given\\.$#"
 			count: 2
 			path: Classes/Utility/LogParserUtility.php
 
