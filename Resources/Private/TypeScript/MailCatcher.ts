@@ -8,6 +8,34 @@ class MailCatcher {
 
 	public bindListener() {
 		$('.content-type-switches a').on('click', this.onContentTypeSwitchClick.bind(this));
+		$('button[data-delete]').on('click', this.onDeleteButtonClick.bind(this));
+	}
+
+	protected refreshMessageCount()
+	{
+		const count = $('.panel[data-message-file]').length;
+		$('*[data-message-count]').attr('data-message-count', count);
+		$('.message-count').html(count.toString());
+	}
+
+	protected onDeleteButtonClick(e: Event) {
+		e.preventDefault();
+		const $panel = $(e.currentTarget).closest('.panel');
+		const messageFile = $panel.attr('data-message-file');
+		const self = this;
+
+		new AjaxRequest(TYPO3.settings.ajaxUrls.mailcatcher_delete)
+			.withQueryArguments({messageFile: messageFile})
+			.get()
+			.then(async function (response) {
+				const resolved = await response.resolve();
+				if (resolved.success) {
+					$panel.remove();
+					self.refreshMessageCount();
+					return;
+				}
+				top.TYPO3.Notification.error('Error', 'Could not delete message', 3);
+			});
 	}
 
 	protected onContentTypeSwitchClick(e: Event) {
@@ -36,10 +64,9 @@ class MailCatcher {
 			.get()
 			.then(async function (response) {
 				const resolved = await response.resolve();
-				console.log(resolved);
 				const $iframe = $('<iframe />')
 					.attr('width', '100%')
-					.attr('height', '300px')
+					.attr('height', '500px')
 					.attr('srcdoc', resolved.src);
 				// @ts-ignore
 				$('.panel[data-message-file="' + messageFile + '"] .form-section[data-content-type="html"]').html($iframe);

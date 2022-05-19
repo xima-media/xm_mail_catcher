@@ -191,4 +191,15 @@ class LogParserUtility
 
         return $message;
     }
+
+    public function deleteMessageByFilename(string $filename): bool
+    {
+        $file = self::getTempPath() . '/' . $filename;
+
+        if (!file_exists($file)) {
+            return false;
+        }
+
+        return unlink($file);
+    }
 }
