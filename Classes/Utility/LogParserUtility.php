@@ -60,9 +60,9 @@ class LogParserUtility
 
         foreach ($messages[1] as $messageString) {
             // remove line breaks that cut strings
-            $messageString = preg_replace("/((\=(\'|\")\n)^b\'|\")/Ums", '', $messageString);
+            $messageString = preg_replace("/\=(\'|\")\nb(\'|\")/Ums", '', $messageString);
             // remove b' '
-            $messageString = preg_replace("/(^b\'|\")(.*)(\'|\"$)/Ums", '$2', $messageString);
+            $messageString = preg_replace("/^b(\'|\")(.*)(\'|\")$/Ums", '$2', $messageString);
             // convert to object
             $this->messages[] = self::convertToDto($messageString);
         }
