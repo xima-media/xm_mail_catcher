@@ -6,6 +6,7 @@ $EM_CONF[$_EXTKEY] = [
     'category' => 'plugin',
     'author' => 'Maik Schneider',
     'author_email' => 'maik.scheider@xima.de',
+    'author_company' => 'XIMA MEDIA GmbH',
     'state' => 'stable',
     'internal' => '',
     'uploadfolder' => 0,
