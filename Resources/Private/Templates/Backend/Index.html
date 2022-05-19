@@ -8,8 +8,17 @@
 	<div class="row justify-content-md-center">
 		<div class="col">
 			<ul class="list-group">
-				<li class="list-group-item">Inbox (<span class="message-count">{mails->f:count()}</span>)</li>
+				<li class="list-group-item">Inbox (<span class="message-count">{mails->f:count()}</span>)
+				</li>
 			</ul>
+
+			<div class="text-center">
+				<button type="button" class="btn btn-outline-danger" id="delete-all-messages">
+					<core:icon identifier="actions-delete" size="small"/>
+					Delete all messages
+				</button>
+			</div>
+
 		</div>
 		<div class="col col-lg-10">
 
@@ -33,7 +42,10 @@
 									</button>
 									<div class="form-irre-header-cell form-irre-header-control">
 										<div class="btn-group btn-group-sm" role="group">
-											<button type="button" class="btn btn-default" title="Delete mail" data-delete>
+											<button type="button"
+													class="btn btn-default"
+													title="Delete mail"
+													data-delete>
 												<core:icon identifier="actions-delete" size="small"/>
 												</span>
 											</button>
@@ -46,22 +58,31 @@
 									<div class="tab-header">
 										<div class="row">
 											<div class="col">
-												<span><strong>To:</strong> {mail.displayToAddress}<br /><strong>Date:</strong> <f:format.date format="H:i, d.m.Y">{mail.date}</f:format.date></span>
+												<span><strong>To:</strong>
+													{mail.displayToAddress}<br/><strong>Date:</strong>
+													<f:format.date format="H:i, d.m.Y">{mail.date}</f:format.date>
+												</span>
 											</div>
 											<div class="col text-right">
 												<div class="btn-group content-type-switches">
-													<a class="btn btn-primary" data-content-type="plain" data-m-id="{i.cycle}">Plain</a>
-													<a class="btn btn-outline-primary"  data-content-type="html" data-m-id="{i.cycle}">HTML</a>
+													<a class="btn btn-primary"
+													   data-content-type="plain"
+													   data-m-id="{i.cycle}">Plain
+													</a>
+													<a class="btn btn-outline-primary"
+													   data-content-type="html"
+													   data-m-id="{i.cycle}">HTML
+													</a>
 												</div>
 											</div>
 										</div>
 									</div>
-									<div class="form-section"  data-content-type="plain" data-m-id="{i.cycle}">
+									<div class="form-section" data-content-type="plain" data-m-id="{i.cycle}">
 										<p>{mail.bodyPlain->f:format.nl2br()}</p>
 									</div>
 									<div class="form-section hidden" data-content-type="html" data-m-id="{i.cycle}">
 										<div class="loading">
-											<core:icon identifier="spinner-circle-dark" size="default" />
+											<core:icon identifier="spinner-circle-dark" size="default"/>
 										</div>
 									</div>
 								</div>
@@ -79,16 +100,23 @@
 		background: #fff;
 		padding: 10px;
 	}
+
 	.btn-outline-primary:hover {
-		color: #FFF;
+		color: #fff;
 	}
+
 	.loading {
 		display: flex;
 		justify-content: center;
 		align-items: center;
 		min-height: 200px;
 	}
+
 	.infobox[data-message-count="0"] {
 		display: block !important;
+	}
+
+	#delete-all-messages {
+		margin-top: 30px;
 	}
 </style>

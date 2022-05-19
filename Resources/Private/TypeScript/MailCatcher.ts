@@ -1,5 +1,7 @@
 import $ = require('jquery');
 import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
+import Modal = require('TYPO3/CMS/Backend/Modal');
+import Severity = require('TYPO3/CMS/Backend/Severity');
 
 class MailCatcher {
 	constructor() {
@@ -9,6 +11,51 @@ class MailCatcher {
 	public bindListener() {
 		$('.content-type-switches a').on('click', this.onContentTypeSwitchClick.bind(this));
 		$('button[data-delete]').on('click', this.onDeleteButtonClick.bind(this));
+		$('#delete-all-messages').on('click', this.onDeleteAllMessagesClick.bind(this));
+	}
+
+	protected onDeleteAllMessagesClick(e: Event)
+	{
+		e.preventDefault();
+		const self = this;
+
+		Modal.confirm('Delete Messages', 'Are you sure, you want to delete all messages?', Severity.warning, [
+			{
+				text: 'Yes, delete',
+				btnClass: 'btn-danger',
+				trigger: function() {
+					self.deleteAllMessages();
+					Modal.dismiss();
+				}
+			},
+			{
+				text: 'No, abort',
+				btnClass: 'primary-outline',
+				active: true,
+				trigger: function() {
+					Modal.dismiss();
+				}
+			}
+		]);
+	}
+
+	protected deleteAllMessages()
+	{
+		const self = this;
+		const $panel = $('.panel[data-message-file]');
+
+		new AjaxRequest(TYPO3.settings.ajaxUrls.mailcatcher_delete_all)
+			.get()
+			.then(async function (response) {
+				const resolved = await response.resolve();
+				if (resolved.success) {
+					$panel.remove();
+					self.refreshMessageCount();
+					top.TYPO3.Notification.success('Success', 'All messages have been deleted', 3);
+					return;
+				}
+				top.TYPO3.Notification.error('Error', 'Could not delete messages', 3);
+			});
 	}
 
 	protected refreshMessageCount()

@@ -41,7 +41,10 @@ class AjaxController
 
     public function deleteAllAction(ServerRequestInterface $request): ResponseInterface
     {
-        return new JsonResponse(['success' => true]);
+        $parser = GeneralUtility::makeInstance(LogParserUtility::class);
+        $success = $parser->deleteMessages();
+
+        return new JsonResponse(['success' => $success]);
     }
 
 

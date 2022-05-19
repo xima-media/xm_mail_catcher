@@ -161,9 +161,11 @@ class LogParserUtility
 
     public function loadMessages(): void
     {
-        $messageFiles = array_filter(scandir(self::getTempPath()), function($filename) {
+        $messageFiles = array_filter(scandir(self::getTempPath()), function ($filename) {
             return strpos($filename, '.json');
         });
+
+        $this->messages = [];
 
         foreach ($messageFiles as $filename) {
             $this->messages[] = $this->getMessageByFilename($filename);
@@ -201,5 +203,23 @@ class LogParserUtility
         }
 
         return unlink($file);
+    }
+
+    public function deleteMessages(): bool
+    {
+        $success = true;
+
+        $messageFiles = array_filter(scandir(self::getTempPath()), function ($filename) {
+            return strpos($filename, '.json');
+        });
+
+        foreach ($messageFiles as $filename) {
+            $success = $this->deleteMessageByFilename($filename);
+            if (!$success) {
+                break;
+            }
+        }
+
+        return $success;
     }
 }
