@@ -13,7 +13,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx webpack --config webpack.js"
+    "start": "npx webpack --config webpack.js  --devtool=inline-source-map --watch",
+    "build": "npx webpack --config webpack.js --mode=production"
   },
   "author": "",
   "license": "MIT"
