@@ -13,7 +13,7 @@ composer require xima/xm-mail-catcher
 To prevent TYPO3 from sending emails, start a fake SMTP server on the host machine via python:
 
 ```
-nohup python -u -m smtpd -n -c DebuggingServer localhost:2500 >> var/www/html/var/log/mail.log &
+python3 -u -m smtpd -n -c DebuggingServer localhost:2500 >> /var/www/html/var/log/mail.log & 2> /dev/null
 ```
 
 Configure TYPO3 to use the local SMTP:
