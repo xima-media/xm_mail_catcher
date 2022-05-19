@@ -4,14 +4,12 @@ namespace Xima\XmMailCatcher\Utility;
 
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
-use TYPO3\CMS\Core\Http\Message;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Xima\XmMailCatcher\Domain\Model\Dto\JsonDateTime;
 use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 
 class LogParserUtility
 {
-
     protected string $fileContent = '';
 
     /**
@@ -51,8 +49,11 @@ class LogParserUtility
             return;
         }
 
-        preg_match_all('/(?:---------- MESSAGE FOLLOWS ----------\n)(.*)(?:------------ END MESSAGE ------------)+/Ums',
-            $this->fileContent, $messages);
+        preg_match_all(
+            '/(?:---------- MESSAGE FOLLOWS ----------\n)(.*)(?:------------ END MESSAGE ------------)+/Ums',
+            $this->fileContent,
+            $messages
+        );
 
         if (!isset($messages[1])) {
             return;
@@ -174,7 +175,7 @@ class LogParserUtility
 
     public function getMessages(): array
     {
-        $this->loadMessages();;
+        $this->loadMessages();
         return $this->messages;
     }
 

@@ -35,7 +35,6 @@ class AjaxController
         $parser = GeneralUtility::makeInstance(LogParserUtility::class);
         $success = $parser->deleteMessageByFilename($params['messageFile']);
 
-
         return new JsonResponse(['success' => true]);
     }
 
@@ -46,7 +45,4 @@ class AjaxController
 
         return new JsonResponse(['success' => $success]);
     }
-
-
-
 }
