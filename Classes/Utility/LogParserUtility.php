@@ -19,21 +19,28 @@ class LogParserUtility
 
     protected function loadLogFile(): void
     {
-        $logPath = GeneralUtility::makeInstance(ExtensionConfiguration::class)
-            ->get('xm_mail_catcher', 'logPath');
+        /** @var ExtensionConfiguration $extensionConfiguration */
+        $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
+        $logPath = $extensionConfiguration->get('xm_mail_catcher', 'logPath');
         $absolutePath = Environment::getProjectPath() . $logPath;
 
         if (!file_exists($absolutePath)) {
             return;
         }
 
-        $this->fileContent = file_get_contents($absolutePath);
+        $this->fileContent = (string)file_get_contents($absolutePath);
     }
 
+    /**
+     * @return void
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
+     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
+     */
     protected function emptyLogFile(): void
     {
-        $logPath = GeneralUtility::makeInstance(ExtensionConfiguration::class)
-            ->get('xm_mail_catcher', 'logPath');
+        /** @var ExtensionConfiguration $extensionConfiguration */
+        $extensionConfiguration = GeneralUtility::makeInstance(ExtensionConfiguration::class);
+        $logPath = $extensionConfiguration->get('xm_mail_catcher', 'logPath');
         $absolutePath = Environment::getProjectPath() . $logPath;
 
         if (!file_exists($absolutePath)) {
@@ -61,18 +68,18 @@ class LogParserUtility
 
         foreach ($messages[1] as $messageString) {
             // remove line breaks that cut strings
-            $messageString = preg_replace("/\=(\'|\")\nb(\'|\")/Ums", '', $messageString);
+            $messageString = preg_replace("/\=(\'|\")\nb(\'|\")/Ums", '', (string)$messageString);
             // remove b' '
-            $messageString = preg_replace("/^b(\'|\")(.*)(\'|\")$/Ums", '$2', $messageString);
+            $messageString = preg_replace("/^b(\'|\")(.*)(\'|\")$/Ums", '$2', (string)$messageString);
             // convert to object
-            $this->messages[] = self::convertToDto($messageString);
+            $this->messages[] = self::convertToDto((string)$messageString);
         }
     }
 
     protected function writeMessagesToFile(): void
     {
         foreach ($this->messages as $message) {
-            $fileContent = json_encode($message);
+            $fileContent = (string)json_encode($message);
             $fileName = $message->getFileName();
             $filePath = self::getTempPath() . $fileName;
             GeneralUtility::writeFileToTypo3tempDir($filePath, $fileContent);
@@ -142,7 +149,7 @@ class LogParserUtility
         return $dto;
     }
 
-    public static function removeFirstThreeLines($string): string
+    public static function removeFirstThreeLines(string $string): string
     {
         return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), 4));
     }
@@ -162,17 +169,22 @@ class LogParserUtility
 
     public function loadMessages(): void
     {
-        $messageFiles = array_filter(scandir(self::getTempPath()), function ($filename) {
-            return strpos($filename, '.json');
+        $messageFiles = array_filter((array)scandir(self::getTempPath()), function ($filename) {
+            return strpos((string)$filename, '.json');
         });
 
         $this->messages = [];
 
         foreach ($messageFiles as $filename) {
-            $this->messages[] = $this->getMessageByFilename($filename);
+            if($message = $this->getMessageByFilename((string)$filename)) {
+                $this->messages[] = $message;
+            }
         }
     }
 
+    /**
+     * @return \Xima\XmMailCatcher\Domain\Model\Dto\MailMessage[]
+     */
     public function getMessages(): array
     {
         $this->loadMessages();
@@ -188,7 +200,7 @@ class LogParserUtility
         }
 
         $fileContent = file_get_contents(self::getTempPath() . '/' . $filename);
-        $data = json_decode($fileContent, true);
+        $data = json_decode((string)$fileContent, true);
         $message = new MailMessage();
         $message->loadFromJson($data);
 
@@ -210,12 +222,12 @@ class LogParserUtility
     {
         $success = true;
 
-        $messageFiles = array_filter(scandir(self::getTempPath()), function ($filename) {
-            return strpos($filename, '.json');
+        $messageFiles = array_filter((array)scandir(self::getTempPath()), function ($filename) {
+            return strpos((string)$filename, '.json');
         });
 
         foreach ($messageFiles as $filename) {
-            $success = $this->deleteMessageByFilename($filename);
+            $success = $this->deleteMessageByFilename((string)$filename);
             if (!$success) {
                 break;
             }
