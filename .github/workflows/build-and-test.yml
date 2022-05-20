@@ -18,10 +18,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Install dependencies
-        uses: php-actions/composer@v6
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          php_version: '7.4'
+          php-version: '8.1'
+      - run: composer install
 
   php-lint:
     runs-on: ubuntu-latest
