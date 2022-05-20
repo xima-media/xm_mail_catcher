@@ -1,5 +1,8 @@
 name: build-and-test
-on: [ push ]
+on:
+  push:
+    branches:
+      - dev
 jobs:
   build-assets:
     runs-on: ubuntu-latest
@@ -15,6 +18,7 @@ jobs:
       - name: Archive production artifacts
         uses: actions/upload-artifact@v3
         with:
+          name: assets
           path: |
             Resources/Public/JavaScript
 
@@ -50,3 +54,45 @@ jobs:
           php-version: 7.4
       - run: composer install
       - run: composer run ci:php:stan
+
+  version-check:
+    runs-on: ubuntu-latest
+    needs:
+      - build-assets
+      - php-lint
+      - php-fixer
+      - php-stan
+    outputs:
+      latest-version: ${{ steps.master.outputs.latest-version }}
+      typo3-ext-version: ${{ steps.dev.outputs.typo3-ext-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: dev
+        run: echo '::set-output name=typo3-ext-version::$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")'
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+      - id: master
+        run: echo '::set-output name=latest-version::$(git describe --abbrev=0 --tags | grep -Po "(\d+\.)+\d+")'
+
+  release:
+    runs-on: ubuntu-latest
+    needs:
+      - version-check
+    if: ${{ needs.version-check.outputs.latest-version != needs.version-check.outputs.typo3-ext-version }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: git checkout -b release-${{needs.version-check.outputs.typo3-ext-version}} dev
+      - name: Download assets
+        uses: actions/download-artifact@v3
+        with:
+          name: assets
+      - run: rm -rf .ddev .github config Configuration/php-cs-fixer.php typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+      - run: git add */.* || true
+      - run: git commit -a -m \"build\"
+      - uses: actions/checkout@v2
+        with:
+          ref: master
+      - run: git merge release-${{needs.version-check.outputs.typo3-ext-version}} --log
+      - run: git tag -a "v${{needs.version-check.outputs.typo3-ext-version}}" -m ""
+      - run: git push origin master --tags
