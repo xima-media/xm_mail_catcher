@@ -68,16 +68,18 @@ jobs:
       typo3-ext-version: ${{ steps.dev.outputs.typo3-ext-version }}
     steps:
       - uses: actions/checkout@v2
-      - run: TYPO3_EXT_VERSION=$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")
       - id: dev
-        run: echo '::set-output name=typo3-ext-version::$(echo ${TYPO3_EXT_VERSION})'
+        run: |
+          TYPO3_EXT_VERSION=$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")
+          echo "::set-output name=typo3-ext-version::$(echo ${TYPO3_EXT_VERSION})"
       - uses: actions/checkout@v2
         with:
           ref: main
       - run: git fetch --prune --unshallow --tags
-      - run: LATEST_TAG=$(git describe --abbrev=0 --tags | grep -Po "(\d+\.)+\d+")
       - id: main
-        run: echo '::set-output name=latest-version::$(echo ${LATEST_TAG})'
+        run: |
+          LATEST_TAG=$(git describe --abbrev=0 --tags | grep -Po "(\d+\.)+\d+")
+          echo "::set-output name=latest-version::$(echo ${LATEST_TAG})"
 
   release:
     runs-on: ubuntu-latest
