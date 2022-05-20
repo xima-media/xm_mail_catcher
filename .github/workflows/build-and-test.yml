@@ -99,6 +99,7 @@ jobs:
           committer_name: GitHub Actions
           committer_email: actions@github.com
           message: '[Build] ${{ env.GITHUB_SHA }}'
+          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
       - uses: EndBug/add-and-commit@v9
         with:
@@ -106,6 +107,7 @@ jobs:
           committer_name: GitHub Actions
           committer_email: actions@github.com
           message: '[Build] Clean up'
+          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - uses: actions/checkout@v2
         with:
           ref: main
