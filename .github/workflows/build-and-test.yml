@@ -88,8 +88,11 @@ jobs:
         with:
           name: assets
       - run: rm -rf .ddev .github config Configuration/php-cs-fixer.php typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
-      - run: git add */.* || true
-      - run: git commit -a -m \"build\"
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: '*/.*'
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
       - uses: actions/checkout@v2
         with:
           ref: main
