@@ -112,7 +112,7 @@ jobs:
         with:
           ref: main
       - run: git fetch --all
-      - run: git merge origin/release-${{needs.version-check.outputs.typo3-ext-version}} --log
+      - run: git merge origin/release-${{needs.version-check.outputs.typo3-ext-version}} --log --allow-unrelated-histories
       - uses: EndBug/add-and-commit@v9
         with:
           tag: 'v${{needs.version-check.outputs.typo3-ext-version}}'
