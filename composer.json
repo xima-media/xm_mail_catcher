@@ -1,0 +1,64 @@
+{
+  "name": "xima/xm-mail-catcher",
+  "type": "typo3-cms-extension",
+  "description": "Display mails that were send to log file",
+  "homepage": "https://www.xima.de",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Maik Schneider",
+      "role": "Developer",
+      "email": "maik.schneider@xima.de"
+    }
+  ],
+  "keywords": [
+    "typo3",
+    "cms",
+    "mail"
+  ],
+  "require": {
+    "typo3/cms-core": ">=v11.0.0"
+  },
+  "require-dev": {
+    "roave/security-advisories": "dev-master",
+    "typo3/cms-base-distribution": "^11.5",
+    "phpmd/phpmd": "^2.6.0",
+    "squizlabs/php_codesniffer": "^3.4",
+    "friendsofphp/php-cs-fixer": "^3.3",
+    "vimeo/psalm": "^4.0",
+    "phpstan/phpstan": "^1.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "Xima\\XmMailCatcher\\": "Classes"
+    }
+  },
+  "extra": {
+    "typo3/cms": {
+      "cms-package-dir": "{$vendor-dir}/typo3/cms",
+      "web-dir": "public",
+      "extension-key": "xm_mail_catcher"
+    }
+  },
+  "config": {
+    "vendor-dir": "vendor",
+    "allow-plugins": {
+      "typo3/cms-composer-installers": true,
+      "typo3/class-alias-loader": true
+    }
+  },
+  "scripts": {
+    "typo3-cms-scripts": [
+      "ln -sfn ../../../ public/typo3conf/ext/xm_mail_catcher",
+      "vendor/bin/typo3cms install:fixfolderstructure"
+    ],
+    "post-autoload-dump": [
+      "@typo3-cms-scripts"
+    ],
+    "php:fix": "./vendor/bin/php-cs-fixer --config=Configuration/php-cs-fixer.php fix Classes Configuration",
+    "ci:php:lint": "find *.php Classes Configuration -name '*.php' -print0 | xargs -0 -n 1 -P 4 php -l",
+    "ci:php:fixer": "./vendor/bin/php-cs-fixer --config=Configuration/php-cs-fixer.php fix --dry-run -v --show-progress=dots Classes Configuration",
+    "ci:php:stan": "./vendor/bin/phpstan --no-progress",
+    "phpstan:baseline": "./vendor/bin/phpstan  --generate-baseline=phpstan-baseline.neon --allow-empty-baseline"
+  }
+}
