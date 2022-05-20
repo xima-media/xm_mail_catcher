@@ -32,7 +32,6 @@ class LogParserUtility
     }
 
     /**
-     * @return void
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
      * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
      */
@@ -176,7 +175,7 @@ class LogParserUtility
         $this->messages = [];
 
         foreach ($messageFiles as $filename) {
-            if($message = $this->getMessageByFilename((string)$filename)) {
+            if ($message = $this->getMessageByFilename((string)$filename)) {
                 $this->messages[] = $message;
             }
         }
