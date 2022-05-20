@@ -23,10 +23,10 @@
         "Resources/Public/JavaScript/*"
       ],
       "TYPO3/CMS/Backend/*": [
-        "typo3_src/TypeScript/backend/*"
+        "typo3_src/TypeScript/backend/Resources/Public/TypeScript/*"
       ],
       "TYPO3/CMS/Core/*": [
-        "typo3_src/TypeScript/core/*"
+        "typo3_src/TypeScript/core/Resources/Public/TypeScript/*"
       ]
     },
     "typeRoots": [

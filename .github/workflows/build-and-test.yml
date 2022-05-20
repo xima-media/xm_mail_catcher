@@ -18,9 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        uses: php-actions/composer@master
+        uses: shivammathur/setup-php@v2
         with:
           php_version: 7.4
+      - run: composer install
       - run: composer run ci:php:lint
       - run: composer run ci:php:fixer
       - run: composer run ci:php:stan
