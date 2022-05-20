@@ -67,6 +67,8 @@ jobs:
       typo3-ext-version: ${{ steps.dev.outputs.typo3-ext-version }}
     steps:
       - uses: actions/checkout@v2
+      - run: cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+"
+      - run: echo "bla-$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")"
       - id: dev
         run: echo '::set-output name=typo3-ext-version::$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")'
       - uses: actions/checkout@v2
