@@ -14,20 +14,14 @@ composer require xima/xm-mail-catcher
 
 ## Configuration
 
-To prevent TYPO3 from sending emails, start a fake SMTP server on the host machine with python:
+To prevent TYPO3 from sending emails, change the transport to `mbox` ([Mail-API](https://docs.typo3.org/m/typo3/reference-coreapi/main/en-us/ApiOverview/Mail/Index.html)). This way TYPO3 writes the outgoing emails to a log file that you can specify via `transport_mbox_file`. The path musst be absolute.
 
 ```
-python3 -u -m smtpd -n -c DebuggingServer localhost:2500 >> /var/www/html/var/log/mail.log & 2> /dev/null
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = 'mbox'
+$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_mbox_file'] = '/var/www/html/var/log/mail.log'
 ```
 
-Configure TYPO3 to use the local SMTP server:
-
-```
-$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport'] = 'smtp'
-$GLOBALS['TYPO3_CONF_VARS']['MAIL']['transport_smtp_server'] = 'localhost:2500'
-```
-
-Adjust the path of the log file in the extension configuration. 
+In the configuration of this extension, adjust the path to the one, you just selected. The path musst be relative.
 
 ```
 $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['xm_mail_catcher']['logPath'] = '/var/log/mail.log'
