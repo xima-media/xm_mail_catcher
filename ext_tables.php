@@ -13,12 +13,12 @@ foreach ($iconsToRegistser as $iconName) {
 }
 
 \TYPO3\CMS\Extbase\Utility\ExtensionUtility::registerModule(
-    'XmMailCatcher',
+    'Xima.XmMailCatcher',
     'system',
     'mails',
     '',
     [
-        \Xima\XmMailCatcher\Controller\BackendController::class => 'index'
+        'Backend' => 'index'
     ],
     [
         'access' => 'admin',
