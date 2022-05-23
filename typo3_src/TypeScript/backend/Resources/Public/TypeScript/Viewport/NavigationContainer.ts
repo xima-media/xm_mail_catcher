@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,101 +11,65 @@
  * The TYPO3 project - inspiring people to share!
  */
 
+import {NavigationComponentInterface} from './NavigationComponentInterface';
 import {ScaffoldIdentifierEnum} from '../Enum/Viewport/ScaffoldIdentifier';
+import {TopbarIdentifiersEnum} from '../Enum/Viewport/TopbarIdentifiers';
 import {AbstractContainer} from './AbstractContainer';
+import * as $ from 'jquery';
+import PageTree = require('./PageTree');
+import Icons = require('./../Icons');
 import TriggerRequest = require('../Event/TriggerRequest');
 import InteractionRequest = require('../Event/InteractionRequest');
 
 class NavigationContainer extends AbstractContainer {
-  private readonly parent: HTMLElement;
-  private readonly container: HTMLElement;
-  private readonly switcher: HTMLElement = null;
-  private activeComponentId: string = '';
-
-  public constructor(consumerScope: any)
-  {
-    super(consumerScope);
-    this.parent = document.querySelector(ScaffoldIdentifierEnum.scaffold);
-    this.container = document.querySelector(ScaffoldIdentifierEnum.contentNavigation);
-    this.switcher = <HTMLElement>document.querySelector(ScaffoldIdentifierEnum.contentNavigationSwitcher);
-  }
+  public PageTree: PageTree = null;
+  private instance: NavigationComponentInterface = null;
 
   /**
-   * Renders registered (non-iframe) navigation component e.g. a page tree
+   * Public method used by Navigation components to register themselves.
+   * See TYPO3/CMS/Backend/PageTree/PageTreeElement->initialize
    *
-   * @param {string} navigationComponentId
+   * @param {NavigationComponentInterface} component
    */
-  public showComponent(navigationComponentId: string): void {
-    this.show(navigationComponentId);
-    // Component is already loaded and active, nothing to do
-    if (navigationComponentId === this.activeComponentId) {
-      return;
-    }
-    if (this.activeComponentId !== '') {
-      let activeComponentElement = this.container.querySelector('#navigationComponent-' + this.activeComponentId.replace(/[/]/g, '_')) as HTMLElement;
-      if (activeComponentElement) {
-        activeComponentElement.style.display = 'none';
-      }
-    }
-
-    const componentCssName = navigationComponentId.replace(/[/]/g, '_');
-    const navigationComponentElement = 'navigationComponent-' + componentCssName;
-
-    // The component was already set up, so requiring the module again can be excluded.
-    if (this.container.querySelectorAll('[data-component="' + navigationComponentId + '"]').length === 1) {
-      this.show(navigationComponentId);
-      this.activeComponentId = navigationComponentId;
-      return;
-    }
-
-    require([navigationComponentId], (__esModule: any): void => {
-      if (typeof __esModule.navigationComponentName === 'string') {
-        const tagName: string = __esModule.navigationComponentName;
-        const element = document.createElement(tagName);
-        element.setAttribute('id', navigationComponentElement);
-        element.classList.add('scaffold-content-navigation-component');
-        element.dataset.component = navigationComponentId;
-        this.container.append(element);
-      } else {
-        // Because the component does not exist, let's create the div as wrapper
-        this.container.insertAdjacentHTML(
-          'beforeend',
-          '<div class="scaffold-content-navigation-component" data-component="' + navigationComponentId + '" id="' + navigationComponentElement + '"></div>'
-        );
-
-        // manual static initialize method, unused but kept for backwards-compatibility until TYPO3 v12
-        // @ts-ignore
-        const navigationComponent = Object.values(__esModule)[0] as any;
-        // @ts-ignore
-        navigationComponent.initialize('#' + navigationComponentElement);
-      }
-      this.show(navigationComponentId);
-      this.activeComponentId = navigationComponentId;
-    });
+  public setComponentInstance(component: NavigationComponentInterface): void {
+    this.instance = component;
+    this.PageTree = new PageTree(component);
   }
 
-  public hide(hideSwitcher: boolean): void {
-    this.parent.classList.remove('scaffold-content-navigation-expanded');
-    this.parent.classList.remove('scaffold-content-navigation-available');
-    if (hideSwitcher && this.switcher) {
-      this.switcher.style.display = 'none';
-    }
+  public toggle(): void {
+    $(ScaffoldIdentifierEnum.scaffold).toggleClass('scaffold-content-navigation-expanded');
+  }
+
+  public cleanup(): void {
+    $(ScaffoldIdentifierEnum.moduleMenu).removeAttr('style');
+    $(ScaffoldIdentifierEnum.content).removeAttr('style');
+  }
+
+  public hide(): void {
+    $(TopbarIdentifiersEnum.buttonNavigationComponent).prop('disabled', true);
+    Icons.getIcon(
+      'actions-pagetree',
+      Icons.sizes.small,
+      'overlay-readonly',
+      null,
+      Icons.markupIdentifiers.inline,
+    ).done((icon: string): void => {
+      $(TopbarIdentifiersEnum.buttonNavigationComponent).html(icon);
+    });
+    $(ScaffoldIdentifierEnum.scaffold).removeClass('scaffold-content-navigation-expanded');
+    $(ScaffoldIdentifierEnum.contentModule).removeAttr('style');
   }
 
   public show(component: string): void {
-    this.container.querySelectorAll(ScaffoldIdentifierEnum.contentNavigationDataComponent).forEach((el: HTMLElement) => el.style.display = 'none');
+    $(TopbarIdentifiersEnum.buttonNavigationComponent).prop('disabled', false);
+    Icons.getIcon('actions-pagetree', Icons.sizes.small, null, null, Icons.markupIdentifiers.inline).done((icon: string): void => {
+      $(TopbarIdentifiersEnum.buttonNavigationComponent).html(icon);
+    });
+
+    $(ScaffoldIdentifierEnum.contentNavigationDataComponent).hide();
     if (typeof component !== undefined) {
-      this.parent.classList.add('scaffold-content-navigation-expanded');
-      this.parent.classList.add('scaffold-content-navigation-available');
-      const selectedElement = this.container.querySelector('[data-component="' + component + '"]') as HTMLElement;
-      if (selectedElement) {
-        // Re-set to the display setting from CSS
-        selectedElement.style.display = null;
-      }
-    }
-    if (this.switcher) {
-      // Re-set to the display setting from CSS
-      this.switcher.style.display = null;
+      $(ScaffoldIdentifierEnum.scaffold).addClass('scaffold-content-navigation-expanded');
+      $(ScaffoldIdentifierEnum.contentNavigation + ' [data-component="' + component + '"]').show();
     }
   }
 
@@ -120,33 +83,44 @@ class NavigationContainer extends AbstractContainer {
       new TriggerRequest('typo3.setUrl', interactionRequest),
     );
     deferred.then((): void => {
-      this.parent.classList.add('scaffold-content-navigation-expanded');
-      const iFrameElement = this.getIFrameElement();
-      if (iFrameElement) {
-        iFrameElement.setAttribute('src', urlToLoad);
-      }
+      $(ScaffoldIdentifierEnum.scaffold).addClass('scaffold-content-navigation-expanded');
+      $(ScaffoldIdentifierEnum.contentNavigationIframe).attr('src', urlToLoad);
     });
     return deferred;
   }
 
+  /**
+   * @returns {string}
+   */
   public getUrl(): string {
-    const iFrameElement = this.getIFrameElement();
-    if (iFrameElement) {
-      return iFrameElement.getAttribute('src');
-    }
-    return '';
+    return $(ScaffoldIdentifierEnum.contentNavigationIframe).attr('src');
   }
 
-  public refresh(): any {
-    const iFrameElement = this.getIFrameElement();
-    if (iFrameElement) {
-      return iFrameElement.contentWindow.location.reload();
-    }
-    return undefined;
+  /**
+   * @param {boolean} forceGet
+   */
+  public refresh(forceGet: boolean): any {
+    return (<HTMLIFrameElement>$(ScaffoldIdentifierEnum.contentNavigationIframe)[0]).contentWindow.location.reload(forceGet);
   }
 
-  private getIFrameElement(): HTMLIFrameElement|null {
-    return this.container.querySelector(ScaffoldIdentifierEnum.contentNavigationIframe) as HTMLIFrameElement;
+  public calculateScrollbar(): void {
+    this.cleanup();
+    const $scaffold = $(ScaffoldIdentifierEnum.scaffold);
+    const $moduleMenuContainer = $(ScaffoldIdentifierEnum.moduleMenu);
+    const $contentContainer = $(ScaffoldIdentifierEnum.content);
+    const $moduleMenu = $('.t3js-modulemenu');
+    $moduleMenuContainer.css('overflow', 'auto');
+    const moduleMenuContainerWidth = $moduleMenuContainer.outerWidth();
+    const moduleMenuWidth = $moduleMenu.outerWidth();
+    $moduleMenuContainer.removeAttr('style').css('overflow', 'hidden');
+    if ($scaffold.hasClass('scaffold-modulemenu-expanded') === false) {
+      $moduleMenuContainer.width(moduleMenuContainerWidth + (moduleMenuContainerWidth - moduleMenuWidth));
+      $contentContainer.css('left', moduleMenuContainerWidth + (moduleMenuContainerWidth - moduleMenuWidth));
+    } else {
+      $moduleMenuContainer.removeAttr('style');
+      $contentContainer.removeAttr('style');
+    }
+    $moduleMenuContainer.css('overflow', 'auto');
   }
 }
 

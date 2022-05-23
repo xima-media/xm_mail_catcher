@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,9 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
+import * as $ from 'jquery';
 import Icons = require('../Icons');
 import PersistentStorage = require('../Storage/Persistent');
 import Viewport = require('../Viewport');
@@ -48,7 +45,7 @@ class SystemInformationMenu {
     // ensure all default classes are available and previous
     // (at this time in processing unknown) class is removed
     $counter.removeClass();
-    $counter.addClass('t3js-systeminformation-counter toolbar-item-badge badge rounded-pill');
+    $counter.addClass('t3js-systeminformation-counter toolbar-item-badge badge');
     // badgeClass e.g. could be 'badge-info', 'badge-danger', ...
     if (badgeClass !== '') {
       $counter.addClass(badgeClass);
@@ -69,16 +66,23 @@ class SystemInformationMenu {
       this.timer = null;
     }
 
-    Icons.getIcon('spinner-circle-light', Icons.sizes.small).then((spinner: string): void => {
+    Icons.getIcon('spinner-circle-light', Icons.sizes.small).done((spinner: string): void => {
       $toolbarItemIcon.replaceWith(spinner);
     });
 
-    (new AjaxRequest(TYPO3.settings.ajaxUrls.systeminformation_render)).get().then(async (response: AjaxResponse): Promise<any> => {
-      $menuContainer.html(await response.resolve());
-      SystemInformationMenu.updateCounter();
-      $(Identifiers.moduleLinks).on('click', this.openModule);
-    }).finally((): void => {
-      $(Identifiers.toolbarIconSelector, Identifiers.containerSelector).replaceWith($existingIcon);
+    $.ajax({
+      url: TYPO3.settings.ajaxUrls.systeminformation_render,
+      type: 'post',
+      cache: false,
+      success: (data: string): void => {
+        $menuContainer.html(data);
+        SystemInformationMenu.updateCounter();
+        $(Identifiers.moduleLinks).on('click', this.openModule);
+      },
+      complete: (): void => {
+        $(Identifiers.toolbarIconSelector, Identifiers.containerSelector).replaceWith($existingIcon);
+      },
+    }).done((): void => {
       // reload error data every five minutes
       this.timer = setTimeout(
         this.updateMenu,

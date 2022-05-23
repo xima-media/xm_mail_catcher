@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -13,14 +12,6 @@
  */
 
 export enum KeyTypesEnum {
-  TAB = 9,
   ENTER = 13,
   ESCAPE = 27,
-  SPACE = 32,
-  END = 35,
-  HOME,
-  LEFT,
-  UP,
-  RIGHT,
-  DOWN
 }

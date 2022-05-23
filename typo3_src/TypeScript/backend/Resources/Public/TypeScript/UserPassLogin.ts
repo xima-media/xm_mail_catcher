@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 import Login = require('./Login');
 
 /**
@@ -59,7 +58,6 @@ class UserPassLogin {
     this.options = {
       passwordField: '.t3js-login-password-field',
       usernameField: '.t3js-login-username-field',
-      copyrightLink: 't3js-login-copyright-link',
     };
 
     // register submit handler
@@ -67,11 +65,9 @@ class UserPassLogin {
 
     const $usernameField = $(this.options.usernameField);
     const $passwordField = $(this.options.passwordField);
-    const copyrightLink = document.getElementsByClassName(this.options.copyrightLink)[0];
 
     $usernameField.on('keypress', this.showCapsLockWarning);
     $passwordField.on('keypress', this.showCapsLockWarning);
-    copyrightLink.addEventListener('keydown', this.toggleCopyright);
 
     // if the login screen is shown in the login_frameset window for re-login,
     // then try to get the username of the current/former login from opening windows main frame:
@@ -111,12 +107,6 @@ class UserPassLogin {
       .parent()
       .find('.t3js-login-alert-capslock')
       .toggleClass('hidden', !UserPassLogin.isCapslockEnabled(event));
-  }
-
-  public toggleCopyright = (event: KeyboardEvent): void => {
-    if (event.key === ' ') {
-      (<HTMLLinkElement>(event.target)).click();
-    }
   }
 }
 

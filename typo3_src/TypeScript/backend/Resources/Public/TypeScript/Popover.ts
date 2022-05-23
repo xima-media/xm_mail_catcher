@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,8 +11,8 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import {Popover as BootstrapPopover} from 'bootstrap';
+import 'bootstrap';
+import * as $ from 'jquery';
 
 /**
  * Module: TYPO3/CMS/Backend/Popover
@@ -27,21 +26,15 @@ class Popover {
    *
    * @return {string}
    */
-  private readonly DEFAULT_SELECTOR: string = '[data-bs-toggle="popover"]';
+  private readonly DEFAULT_SELECTOR: string = '[data-toggle="popover"]';
 
-  constructor() {
-    this.initialize();
-  }
-
+  // noinspection JSMethodCanBeStatic
   /**
    * Initialize
    */
   public initialize(selector?: string): void {
     selector = selector || this.DEFAULT_SELECTOR;
-    $(selector).each((i, el) => {
-      const popover = new BootstrapPopover(el);
-      $(el).data('typo3.bs.popover', popover);
-    });
+    $(selector).popover();
   }
 
   // noinspection JSMethodCanBeStatic
@@ -50,11 +43,8 @@ class Popover {
    *
    * @param {JQuery} $element
    */
-  public popover($element: JQuery) {
-    $element.each((i, el) => {
-      const popover = new BootstrapPopover(el);
-      $(el).data('typo3.bs.popover', popover);
-    });
+  public popover($element: JQuery): void {
+    $element.popover();
   }
 
   // noinspection JSMethodCanBeStatic
@@ -64,19 +54,15 @@ class Popover {
    * @param {JQuery} $element
    * @param {PopoverOptions} options
    */
-  public setOptions($element: JQuery, options?: BootstrapPopover.Options): void {
-    options = options || <BootstrapPopover.Options>{};
-    options.html = true;
+  public setOptions($element: JQuery, options?: PopoverOptions): void {
+    options = options || {};
     const title: string|(() => void) = options.title || $element.data('title') || '';
-    const content: string|(() => void) = options.content || $element.data('bs-content') || '';
+    const content: string|(() => void) = options.content || $element.data('content') || '';
     $element
-      .attr('data-bs-original-title', (title as string))
-      .attr('data-bs-content', (content as string))
-      .attr('data-bs-placement', 'auto')
-
-    $.each(options, (key, value) => {
-      this.setOption($element, key, value);
-    });
+      .attr('data-original-title', (title as string))
+      .attr('data-content', (content as string))
+      .attr('data-placement', 'auto')
+      .popover(options);
   }
 
   // noinspection JSMethodCanBeStatic
@@ -88,18 +74,7 @@ class Popover {
    * @param {String} value
    */
   public setOption($element: JQuery, key: string, value: string): void {
-    if (key === 'content') {
-      const popover = $element.data('typo3.bs.popover');
-      popover._config.content = value;
-      popover.setContent(popover.tip);
-    } else {
-      $element.each((i, el) => {
-        const popover = $(el).data('typo3.bs.popover');
-        if (popover) {
-          popover._config[key] = value;
-        }
-      });
-    }
+    $element.data('bs.popover').options[key] = value;
   }
 
   // noinspection JSMethodCanBeStatic
@@ -109,12 +84,7 @@ class Popover {
    * @param {JQuery} $element
    */
   public show($element: JQuery): void {
-    $element.each((i, el) => {
-      const popover = $(el).data('typo3.bs.popover');
-      if (popover) {
-        popover.show();
-      }
-    });
+    $element.popover('show');
   }
 
   // noinspection JSMethodCanBeStatic
@@ -124,12 +94,7 @@ class Popover {
    * @param {JQuery} $element
    */
   public hide($element: JQuery): void {
-    $element.each((i, el) => {
-      const popover = $(el).data('typo3.bs.popover');
-      if (popover) {
-        popover.hide();
-      }
-    });
+    $element.popover('hide');
   }
 
   // noinspection JSMethodCanBeStatic
@@ -139,12 +104,7 @@ class Popover {
    * @param {Object} $element
    */
   public destroy($element: JQuery): void {
-    $element.each((i, el) => {
-      const popover = $(el).data('typo3.bs.popover');
-      if (popover) {
-        popover.dispose();
-      }
-    });
+    $element.popover('destroy');
   }
 
   // noinspection JSMethodCanBeStatic
@@ -154,23 +114,14 @@ class Popover {
    * @param {Object} $element
    */
   public toggle($element: JQuery): void {
-    $element.each((i, el) => {
-      const popover = $(el).data('typo3.bs.popover');
-      if (popover) {
-        popover.toggle();
-      }
-    });
-  }
-
-  // noinspection JSMethodCanBeStatic
-  /**
-   * Update popover with new content
-   *
-   * @param $element
-   */
-  public update($element: JQuery): void {
-    $element.data('typo3.bs.popover')._popper.update();
+    $element.popover('toggle');
   }
 }
 
-export = new Popover();
+// create an instance, initialize and return it
+const popover: Popover = new Popover();
+popover.initialize();
+
+// @deprecated since TYPO3 v9, will be removed in TYPO3 v10 prevent global object usage
+TYPO3.Popover = popover;
+export = popover;

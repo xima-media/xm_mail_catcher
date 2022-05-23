@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -34,13 +33,13 @@ class TriggerRequest extends InteractionRequest {
   }
 
   public concernsTypes(types: string[]): boolean {
-    if (types.includes(this.type)) {
+    if (types.indexOf(this.type) !== -1) {
       return true;
     }
     let request: InteractionRequest = this;
     while (request.parentRequest instanceof InteractionRequest) {
       request = request.parentRequest;
-      if (types.includes(request.type)) {
+      if (types.indexOf(request.type) !== -1) {
         return true;
       }
     }

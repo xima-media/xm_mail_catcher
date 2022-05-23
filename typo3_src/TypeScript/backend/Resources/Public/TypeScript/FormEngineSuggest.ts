@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,8 +11,8 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import 'jquery/autocomplete';
+import * as $ from 'jquery';
+import 'TYPO3/CMS/Core/Contrib/jquery.autocomplete';
 import FormEngine = require('TYPO3/CMS/Backend/FormEngine');
 
 // data structure returned by SuggestWizardDefaultReceiver::queryTable()
@@ -46,7 +45,7 @@ class FormEngineSuggest {
   }
 
   private initialize(searchField: HTMLElement): void {
-    const containerElement: Element = searchField.closest('.t3-form-suggest-container');
+    const containerElement: JQuery = $(searchField).closest('.t3-form-suggest-container');
     const tableName: string = searchField.dataset.tablename;
     const fieldName: string = searchField.dataset.fieldname;
     const formEl: string = searchField.dataset.field;
@@ -71,14 +70,14 @@ class FormEngineSuggest {
       flexFormContainerFieldName,
     };
 
-    function insertValue(element: HTMLElement): void {
+    function insertValue(element: JQuery): void {
       let insertData: string = '';
       if (searchField.dataset.fieldtype === 'select') {
-        insertData = element.dataset.uid;
+        insertData = element.data('uid');
       } else {
-        insertData = element.dataset.table + '_' + element.dataset.uid;
+        insertData = element.data('table') + '_' + element.data('uid');
       }
-      FormEngine.setSelectOptionFromExternalSource(formEl, insertData, element.dataset.label, element.dataset.label);
+      FormEngine.setSelectOptionFromExternalSource(formEl, insertData, element.data('label'), element.data('label'));
       FormEngine.Validation.markFieldAsChanged($(document.querySelector('input[name="' + formEl + '"]')));
     }
 
@@ -119,18 +118,18 @@ class FormEngineSuggest {
           })).html();
       },
       onSearchComplete: function(): void {
-        containerElement.classList.add('open');
+        containerElement.addClass('open');
       },
       beforeRender: function(container: JQuery): void {
         // Unset height, width and z-index again, should be fixed by the plugin at a later point
         container.attr('style', '');
-        containerElement.classList.add('open');
+        containerElement.addClass('open');
       },
       onHide: function(): void {
-        containerElement.classList.remove('open');
+        containerElement.removeClass('open');
       },
       onSelect: function(): void {
-        insertValue(<HTMLElement>(containerElement.querySelector('.autocomplete-selected a')));
+        insertValue(containerElement.find('.autocomplete-selected a'));
       },
     });
   }

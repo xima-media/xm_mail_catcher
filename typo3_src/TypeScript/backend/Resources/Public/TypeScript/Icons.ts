@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,13 +11,28 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
+import * as $ from 'jquery';
 import ClientStorage = require('./Storage/Client');
-import {Sizes, States, MarkupIdentifiers} from './Enum/IconTypes';
+
+enum Sizes {
+  small = 'small',
+  default = 'default',
+  large = 'large',
+  overlay = 'overlay',
+}
+
+enum States {
+  default = 'default',
+  disabled = 'disabled',
+}
+
+enum MarkupIdentifiers {
+  default = 'default',
+  inline = 'inline',
+}
 
 interface PromiseCache {
-  [key: string]: Promise<string>;
+  [key: string]: JQueryPromise<any>;
 }
 
 /**
@@ -39,15 +53,13 @@ class Icons {
    * @param {string} overlayIdentifier
    * @param {string} state
    * @param {MarkupIdentifiers} markupIdentifier
-   * @returns {Promise<string>}
+   * @returns {JQueryPromise<any>}
    */
-  public getIcon(
-    identifier: string,
-    size: Sizes,
-    overlayIdentifier?: string,
-    state?: string,
-    markupIdentifier?: MarkupIdentifiers,
-  ): Promise<string> {
+  public getIcon(identifier: string,
+                 size: Sizes,
+                 overlayIdentifier?: string,
+                 state?: string,
+                 markupIdentifier?: MarkupIdentifiers): JQueryPromise<any> {
 
     /**
      * Icon keys:
@@ -65,7 +77,7 @@ class Icons {
     const describedIcon = [identifier, size, overlayIdentifier, state, markupIdentifier];
     const cacheIdentifier = describedIcon.join('_');
 
-    return this.getIconRegistryCache().then((registryCacheIdentifier: string): any => {
+    return $.when(this.getIconRegistryCache()).pipe((registryCacheIdentifier: string): any => {
       if (!ClientStorage.isset('icon_registry_cache_identifier')
         || ClientStorage.get('icon_registry_cache_identifier') !== registryCacheIdentifier
       ) {
@@ -79,17 +91,16 @@ class Icons {
     });
   }
 
-  private getIconRegistryCache(): Promise<string> {
+  private getIconRegistryCache(): JQueryPromise<any> {
     const promiseCacheIdentifier = 'icon_registry_cache_identifier';
 
     if (!this.isPromiseCached(promiseCacheIdentifier)) {
-      this.putInPromiseCache(
-        promiseCacheIdentifier,
-        (new AjaxRequest(TYPO3.settings.ajaxUrls.icons_cache)).get()
-          .then(async (response: AjaxResponse): Promise<string> => {
-            return await response.resolve()
-          })
-      );
+      this.putInPromiseCache(promiseCacheIdentifier, $.ajax({
+        url: TYPO3.settings.ajaxUrls.icons_cache,
+        success: (response: string): string => {
+          return response;
+        },
+      }));
     }
 
     return this.getFromPromiseCache(promiseCacheIdentifier);
@@ -102,22 +113,21 @@ class Icons {
    * @param {string} cacheIdentifier
    * @returns {JQueryPromise<any>}
    */
-  private fetchFromRemote(icon: Array<string>, cacheIdentifier: string): Promise<string> {
+  private fetchFromRemote(icon: Array<string>, cacheIdentifier: string): JQueryPromise<any> {
     if (!this.isPromiseCached(cacheIdentifier)) {
-      const queryArguments = {
-        icon: JSON.stringify(icon),
-      };
-      this.putInPromiseCache(
-        cacheIdentifier,
-        (new AjaxRequest(TYPO3.settings.ajaxUrls.icons)).withQueryArguments(queryArguments).get()
-          .then(async (response: AjaxResponse): Promise<string> => {
-            const markup = await response.resolve();
-            if (markup.includes('t3js-icon') && markup.includes('<span class="icon-markup">')) {
-              ClientStorage.set('icon_' + cacheIdentifier, markup);
-            }
-            return markup;
-          })
-      );
+      this.putInPromiseCache(cacheIdentifier, $.ajax({
+        url: TYPO3.settings.ajaxUrls.icons,
+        dataType: 'html',
+        data: {
+          icon: JSON.stringify(icon),
+        },
+        success: (markup: string) => {
+          if (markup.indexOf('t3js-icon') !== -1 && markup.indexOf('<span class="icon-markup">') !== -1) {
+            ClientStorage.set('icon_' + cacheIdentifier, markup);
+          }
+          return markup;
+        },
+      }));
     }
     return this.getFromPromiseCache(cacheIdentifier);
   }
@@ -125,14 +135,17 @@ class Icons {
   /**
    * Gets the icon from localStorage
    * @param {string} cacheIdentifier
-   * @returns {Promise<string>}
+   * @returns {JQueryPromise<any>}
    */
-  private fetchFromLocal(cacheIdentifier: string): Promise<string> {
+  private fetchFromLocal(cacheIdentifier: string): JQueryPromise<any> {
+    const deferred = $.Deferred();
     if (ClientStorage.isset('icon_' + cacheIdentifier)) {
-      return Promise.resolve(ClientStorage.get('icon_' + cacheIdentifier));
+      deferred.resolve(ClientStorage.get('icon_' + cacheIdentifier));
+    } else {
+      deferred.reject();
     }
 
-    return Promise.reject();
+    return deferred.promise();
   }
 
   /**
@@ -149,9 +162,9 @@ class Icons {
    * Get icon from cache
    *
    * @param {string} cacheIdentifier
-   * @returns {Promise<string>}
+   * @returns {JQueryPromise<any>}
    */
-  private getFromPromiseCache(cacheIdentifier: string): Promise<string> {
+  private getFromPromiseCache(cacheIdentifier: string): JQueryPromise<any> {
     return this.promiseCache[cacheIdentifier];
   }
 
@@ -159,9 +172,9 @@ class Icons {
    * Put icon into cache
    *
    * @param {string} cacheIdentifier
-   * @param {Promise<string>} markup
+   * @param {JQueryPromise<any>} markup
    */
-  private putInPromiseCache(cacheIdentifier: string, markup: Promise<string>): void {
+  private putInPromiseCache(cacheIdentifier: string, markup: JQueryPromise<any>): void {
     this.promiseCache[cacheIdentifier] = markup;
   }
 }

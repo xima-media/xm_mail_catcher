@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,9 +13,9 @@
 
 import {SeverityEnum} from './Enum/Severity';
 import 'bootstrap';
-import $ from 'jquery';
+import * as $ from 'jquery';
 import Modal = require('./Modal');
-import SecurityUtility from 'TYPO3/CMS/Core/SecurityUtility';
+import SecurityUtility = require('TYPO3/CMS/Core/SecurityUtility');
 
 /**
  * GridEditorConfigurationInterface
@@ -49,7 +48,7 @@ export class GridEditor {
   protected field: JQuery;
   protected data: any[];
   protected nameLabel: string = 'name';
-  protected columnLabel: string = 'column label';
+  protected columnLabel: string = 'columen label';
   protected targetElement: JQuery;
   protected defaultCell: object = {spanned: 0, rowspan: 1, colspan: 1, name: '', colpos: '', column: undefined};
   protected selectorEditor: string = '.t3js-grideditor';
@@ -67,8 +66,7 @@ export class GridEditor {
   protected selectorDocHeaderSave: string = '.t3js-grideditor-savedok';
   protected selectorDocHeaderSaveClose: string = '.t3js-grideditor-savedokclose';
   protected selectorConfigPreview: string = '.t3js-grideditor-preview-config';
-  protected selectorPreviewArea: string = '.t3js-tsconfig-preview-area';
-  protected selectorCodeMirror: string = '.t3js-grideditor-preview-config .CodeMirror';
+  protected selectorConfigPreviewButton: string = '.t3js-grideditor-preview-button';
 
   /**
    * Remove all markup
@@ -94,6 +92,9 @@ export class GridEditor {
     this.nameLabel = config !== null ? config.nameLabel : 'Name';
     this.columnLabel = config !== null ? config.columnLabel : 'Column';
     this.targetElement = $(this.selectorEditor);
+    $(this.selectorConfigPreview).hide();
+
+    $(this.selectorConfigPreviewButton).empty().append(TYPO3.lang['button.showPageTsConfig']);
 
     this.initializeEvents();
     this.drawTable();
@@ -115,6 +116,7 @@ export class GridEditor {
     $(document).on('click', this.selectorLinkShrinkLeft, this.linkShrinkLeftHandler);
     $(document).on('click', this.selectorLinkExpandDown, this.linkExpandDownHandler);
     $(document).on('click', this.selectorLinkShrinkUp, this.linkShrinkUpHandler);
+    $(document).on('click', this.selectorConfigPreviewButton, this.configPreviewButtonHandler);
   }
 
   /**
@@ -267,6 +269,23 @@ export class GridEditor {
   }
 
   /**
+   *
+   * @param {Event} e
+   */
+  protected configPreviewButtonHandler = (e: Event) => {
+    e.preventDefault();
+    const $preview = $(this.selectorConfigPreview);
+    const $button = $(this.selectorConfigPreviewButton);
+    if ($preview.is(':visible')) {
+      $button.empty().append(TYPO3.lang['button.showPageTsConfig']);
+      $(this.selectorConfigPreview).slideUp();
+    } else {
+      $button.empty().append(TYPO3.lang['button.hidePageTsConfig']);
+      $(this.selectorConfigPreview).slideDown();
+    }
+  }
+
+  /**
    * Create a new cell from defaultCell
    * @returns {Object}
    */
@@ -281,43 +300,24 @@ export class GridEditor {
    */
   protected writeConfig(data: any): void {
     this.field.val(data);
-    const configLines = data.split('
-');
+    const configLines = data.split('\n');
     let config = '';
     for (const line of configLines) {
       if (line) {
-        config += '			' + line + '
-';
+        config += '\t\t\t' + line + '\n';
       }
     }
-
-    let content = 'mod.web_layout.BackendLayouts {
-' +
-      '  exampleKey {
-' +
-      '    title = Example
-' +
-      '    icon = EXT:example_extension/Resources/Public/Images/BackendLayouts/default.gif
-' +
-      '    config {
-' +
-      config.replace(new RegExp('	', 'g'), '  ') +
-      '    }
-' +
-      '  }
-' +
-      '}
-';
-
-    $(this.selectorConfigPreview).find(this.selectorPreviewArea).empty().append(
-      content
+    $(this.selectorConfigPreview).find('code').empty().append(
+      'mod.web_layout.BackendLayouts {\n' +
+      '  exampleKey {\n' +
+      '    title = Example\n' +
+      '    icon = EXT:example_extension/Resources/Public/Images/BackendLayouts/default.gif\n' +
+      '    config {\n' +
+      config.replace(new RegExp('\t', 'g'), '  ') +
+      '    }\n' +
+      '  }\n' +
+      '}\n',
     );
-
-    // Update CodeMirror content if instantiated
-    const codemirror: any = document.querySelector(this.selectorCodeMirror);
-    if (codemirror) {
-      codemirror.CodeMirror.setValue(content)
-    }
   }
 
   /**
@@ -566,9 +566,9 @@ export class GridEditor {
               + '<br />'
               + TYPO3.lang.grid_column + ': '
               + (typeof cell.column === 'undefined' || isNaN(cell.column)
-                ? TYPO3.lang.grid_notSet
-                : parseInt(cell.column, 10)
-              ),
+                  ? TYPO3.lang.grid_notSet
+                  : parseInt(cell.column, 10)
+                ),
             ),
         );
         if (cell.colspan > 1) {
@@ -897,16 +897,10 @@ export class GridEditor {
    * @returns {String}
    */
   protected export2LayoutRecord(): string {
-    let result = 'backend_layout {
-	colCount = ' + this.colCount + '
-	rowCount = ' + this.rowCount + '
-	rows {
-';
+    let result = 'backend_layout {\n\tcolCount = ' + this.colCount + '\n\trowCount = ' + this.rowCount + '\n\trows {\n';
     for (let row = 0; row < this.rowCount; row++) {
-      result += '		' + (row + 1) + ' {
-';
-      result += '			columns {
-';
+      result += '\t\t' + (row + 1) + ' {\n';
+      result += '\t\t\tcolumns {\n';
       let colIndex = 0;
       for (let col = 0; col < this.colCount; col++) {
         const cell = this.getCell(col, row);
@@ -914,37 +908,27 @@ export class GridEditor {
           if (!cell.spanned) {
             const cellName: string = GridEditor.stripMarkup(cell.name) || '';
             colIndex++;
-            result += '				' + (colIndex) + ' {
-';
-            result += '					name = ' + ((!cellName) ? col + 'x' + row : cellName) + '
-';
+            result += '\t\t\t\t' + (colIndex) + ' {\n';
+            result += '\t\t\t\t\tname = ' + ((!cellName) ? col + 'x' + row : cellName) + '\n';
             if (cell.colspan > 1) {
-              result += '					colspan = ' + cell.colspan + '
-';
+              result += '\t\t\t\t\tcolspan = ' + cell.colspan + '\n';
             }
             if (cell.rowspan > 1) {
-              result += '					rowspan = ' + cell.rowspan + '
-';
+              result += '\t\t\t\t\trowspan = ' + cell.rowspan + '\n';
             }
             if (typeof(cell.column) === 'number') {
-              result += '					colPos = ' + cell.column + '
-';
+              result += '\t\t\t\t\tcolPos = ' + cell.column + '\n';
             }
-            result += '				}
-';
+            result += '\t\t\t\t}\n';
           }
         }
 
       }
-      result += '			}
-';
-      result += '		}
-';
+      result += '\t\t\t}\n';
+      result += '\t\t}\n';
     }
 
-    result += '	}
-}
-';
+    result += '\t}\n}\n';
     return result;
   }
 }

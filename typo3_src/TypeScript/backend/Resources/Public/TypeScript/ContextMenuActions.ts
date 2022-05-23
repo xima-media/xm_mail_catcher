@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,17 +11,13 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
 import {SeverityEnum} from './Enum/Severity';
-import $ from 'jquery';
+import * as $ from 'jquery';
 import AjaxDataHandler = require('./AjaxDataHandler');
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import InfoWindow = require('./InfoWindow');
 import Modal = require('./Modal');
 import ModuleMenu = require('./ModuleMenu');
-import Notification = require('TYPO3/CMS/Backend/Notification');
 import Viewport = require('./Viewport');
-import {ModuleStateStorage} from './Storage/ModuleStateStorage';
 
 /**
  * @exports TYPO3/CMS/Backend/ContextMenuActions
@@ -32,7 +27,7 @@ class ContextMenuActions {
    * @returns {string}
    */
   public static getReturnUrl(): string {
-    return encodeURIComponent(top.list_frame.document.location.pathname + top.list_frame.document.location.search);
+    return top.rawurlencode(top.list_frame.document.location.pathname + top.list_frame.document.location.search);
   }
 
   /**
@@ -56,7 +51,11 @@ class ContextMenuActions {
     );
   }
 
-  public static viewRecord(): void {
+  /**
+   * @param {string} table
+   * @param {number} uid
+   */
+  public static viewRecord(table: string, uid: number): void {
     const $viewUrl = $(this).data('preview-url');
     if ($viewUrl) {
       const previewWin = window.open($viewUrl, 'newTYPO3frontendWindow');
@@ -78,12 +77,7 @@ class ContextMenuActions {
    */
   public static mountAsTreeRoot(table: string, uid: number): void {
     if (table === 'pages') {
-      const event = new CustomEvent('typo3:pagetree:mountPoint', {
-        detail: {
-          pageId: uid
-        },
-      });
-      top.document.dispatchEvent(event);
+      Viewport.NavigationContainer.PageTree.setTemporaryMountPoint(uid);
     }
   }
 
@@ -97,7 +91,11 @@ class ContextMenuActions {
     );
   }
 
-  public static newContentWizard(): void {
+  /**
+   * @param {string} table
+   * @param {number} uid
+   */
+  public static newContentWizard(table: string, uid: number): void {
     const $me = $(this);
     let $wizardUrl = $me.data('new-wizard-url');
     if ($wizardUrl) {
@@ -141,14 +139,22 @@ class ContextMenuActions {
     ModuleMenu.App.showModule('web_list', 'id=' + pageId);
   }
 
-  public static pagesSort(): void {
+  /**
+   * @param {string} table
+   * @param {number} uid
+   */
+  public static pagesSort(table: string, uid: number): void {
     const pagesSortUrl = $(this).data('pages-sort-url');
     if (pagesSortUrl) {
       Viewport.ContentContainer.setUrl(pagesSortUrl);
     }
   }
 
-  public static pagesNewMultiple(): void {
+  /**
+   * @param {string} table
+   * @param {number} uid
+   */
+  public static pagesNewMultiple(table: string, uid: number): void {
     const pagesSortUrl = $(this).data('pages-new-multiple-url');
     if (pagesSortUrl) {
       Viewport.ContentContainer.setUrl(pagesSortUrl);
@@ -166,7 +172,7 @@ class ContextMenuActions {
       + '&data[' + table + '][' + uid + '][' + disableFieldName + ']=1'
       + '&redirect=' + ContextMenuActions.getReturnUrl(),
     ).done((): void => {
-      ContextMenuActions.refreshPageTree();
+      Viewport.NavigationContainer.PageTree.refreshTree();
     });
   }
 
@@ -181,35 +187,7 @@ class ContextMenuActions {
       + '&data[' + table + '][' + uid + '][' + disableFieldName + ']=0'
       + '&redirect=' + ContextMenuActions.getReturnUrl(),
     ).done((): void => {
-      ContextMenuActions.refreshPageTree();
-    });
-  }
-
-  /**
-   * @param {string} table
-   * @param {number} uid
-   */
-  public static showInMenus(table: string, uid: number): void {
-    Viewport.ContentContainer.setUrl(
-      top.TYPO3.settings.RecordCommit.moduleUrl
-      + '&data[' + table + '][' + uid + '][nav_hide]=0'
-      + '&redirect=' + ContextMenuActions.getReturnUrl(),
-    ).done((): void => {
-      ContextMenuActions.refreshPageTree();
-    });
-  }
-
-  /**
-   * @param {string} table
-   * @param {number} uid
-   */
-  public static hideInMenus(table: string, uid: number): void {
-    Viewport.ContentContainer.setUrl(
-      top.TYPO3.settings.RecordCommit.moduleUrl
-      + '&data[' + table + '][' + uid + '][nav_hide]=1'
-      + '&redirect=' + ContextMenuActions.getReturnUrl(),
-    ).done((): void => {
-      ContextMenuActions.refreshPageTree();
+      Viewport.NavigationContainer.PageTree.refreshTree();
     });
   }
 
@@ -238,16 +216,14 @@ class ContextMenuActions {
 
     $modal.on('button.clicked', (e: JQueryEventObject): void => {
       if (e.target.getAttribute('name') === 'delete') {
-        const eventData = {component: 'contextmenu', action: 'delete', table, uid};
-        AjaxDataHandler.process('cmd[' + table + '][' + uid + '][delete]=1', eventData).then((): void => {
-          if (table === 'pages') {
-            // base on the assumption that the last selected node, is the one that got deleted
-            if (ModuleStateStorage.current('web').identifier === uid.toString()) {
-              top.document.dispatchEvent(new CustomEvent('typo3:pagetree:selectFirstNode'));
+        const xhr = AjaxDataHandler.process('cmd[' + table + '][' + uid + '][delete]=1');
+        xhr.done((): void => {
+          if (table === 'pages' && Viewport.NavigationContainer.PageTree) {
+            if (uid === top.fsMod.recentIds.web) {
+              let node = Viewport.NavigationContainer.PageTree.instance.nodes[0];
+              Viewport.NavigationContainer.PageTree.selectNode(node);
             }
-            ContextMenuActions.refreshPageTree();
-          } else if (table === 'tt_content' && top.currentModuleLoaded === 'web_layout') {
-            Viewport.ContentContainer.refresh();
+            Viewport.NavigationContainer.PageTree.refreshTree();
           }
         });
       }
@@ -264,7 +240,7 @@ class ContextMenuActions {
       + '&CB[el][' + table + '%7C' + uid + ']=1'
       + '&CB[setCopyMode]=1';
 
-    (new AjaxRequest(url)).get().finally((): void => {
+    $.ajax(url).always((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -277,7 +253,7 @@ class ContextMenuActions {
     const url = TYPO3.settings.ajaxUrls.contextmenu_clipboard
       + '&CB[el][' + table + '%7C' + uid + ']=0';
 
-    (new AjaxRequest(url)).get().finally((): void => {
+    $.ajax(url).always((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -291,7 +267,7 @@ class ContextMenuActions {
       + '&CB[el][' + table + '%7C' + uid + ']=1'
       + '&CB[setCopyMode]=0';
 
-    (new AjaxRequest(url)).get().finally((): void => {
+    $.ajax(url).always((): void => {
       ContextMenuActions.triggerRefresh(Viewport.ContentContainer.get().location.href);
     });
   }
@@ -300,8 +276,8 @@ class ContextMenuActions {
    * @param {string} iframeUrl
    */
   public static triggerRefresh(iframeUrl: string): void {
-    if (!iframeUrl.includes('record%2Fedit')) {
-      Viewport.ContentContainer.refresh();
+    if (iframeUrl.indexOf('record%2Fedit') === -1) {
+      Viewport.ContentContainer.refresh(true);
     }
   }
 
@@ -312,28 +288,16 @@ class ContextMenuActions {
    * @param {number} uid uid of the page
    */
   public static clearCache(table: string, uid: number): void {
-    (new AjaxRequest(TYPO3.settings.ajaxUrls.web_list_clearpagecache)).withQueryArguments({id: uid}).get({cache: 'no-cache'}).then(
-      async (response: AjaxResponse): Promise<any> => {
-        const data = await response.resolve();
-        if (data.success === true) {
-          Notification.success(data.title, data.message, 1);
-        } else {
-          Notification.error(data.title, data.message, 1);
-        }
-      },
-      (): void => {
-        Notification.error(
-          'Clearing page caches went wrong on the server side.',
-        );
-      }
-    );
+    const url = top.TYPO3.settings.WebLayout.moduleUrl
+      + '&id=' + uid + '&clear_cache=1';
+    $.ajax(url);
   }
 
   /**
    * Paste db record after another
    *
    * @param {string} table any db table except sys_file
-   * @param {number} uid uid of the record after which record from the clipboard will be pasted
+   * @param {number} uid uid of the record after which record from the cliboard will be pasted
    */
   public static pasteAfter(table: string, uid: number): void {
     ContextMenuActions.pasteInto.bind($(this))(table, -uid);
@@ -343,7 +307,7 @@ class ContextMenuActions {
    * Paste page into another page
    *
    * @param {string} table any db table except sys_file
-   * @param {number} uid uid of the record after which record from the clipboard will be pasted
+   * @param {number} uid uid of the record after which record from the cliboard will be pasted
    */
   public static pasteInto(table: string, uid: number): void {
     const $anchorElement = $(this);
@@ -355,8 +319,8 @@ class ContextMenuActions {
       Viewport.ContentContainer.setUrl(
         top.TYPO3.settings.RecordCommit.moduleUrl + url,
       ).done((): void => {
-        if (table === 'pages') {
-          ContextMenuActions.refreshPageTree();
+        if (table === 'pages' && Viewport.NavigationContainer.PageTree) {
+          Viewport.NavigationContainer.PageTree.refreshTree();
         }
       });
     };
@@ -387,10 +351,6 @@ class ContextMenuActions {
       }
       Modal.dismiss();
     });
-  }
-
-  private static refreshPageTree(): void {
-    top.document.dispatchEvent(new CustomEvent('typo3:pagetree:refresh'));
   }
 }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -13,10 +12,7 @@
  */
 
 import 'bootstrap';
-import $ from 'jquery';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import {Popover as BootstrapPopover} from 'bootstrap';
+import * as $ from 'jquery';
 import Popover = require('./Popover');
 
 interface HelpData {
@@ -34,7 +30,7 @@ class ContextHelp {
   private helpModuleUrl: string;
   private trigger: string = 'click';
   private placement: string = 'auto';
-  private selector: string = '.help-link';
+  private selector: string = '.t3-help-link';
 
   /**
    * @return {Window}
@@ -70,21 +66,20 @@ class ContextHelp {
     const $element = $(this.selector);
     $element
       .attr('data-loaded', 'false')
-      .attr('data-bs-html', 'true')
-      .attr('data-bs-original-title', title)
-      .attr('data-bs-placement', this.placement)
-      .attr('data-bs-trigger', this.trigger);
+      .attr('data-html', 'true')
+      .attr('data-original-title', title)
+      .attr('data-placement', this.placement)
+      .attr('data-trigger', this.trigger);
     Popover.popover($element);
 
     $(document).on('show.bs.popover', this.selector, (e: Event): void => {
       const $me = $(e.currentTarget);
       const description = $me.data('description');
       if (typeof description !== 'undefined' && description !== '') {
-        const options = <BootstrapPopover.Options>{
-          title: $me.data('title') || '',
+        Popover.setOptions($me, {
+          title: $me.data('title'),
           content: description,
-        };
-        Popover.setOptions($me, options);
+        });
       } else if ($me.attr('data-loaded') === 'false' && $me.data('table')) {
         this.loadHelp($me);
       }
@@ -93,11 +88,16 @@ class ContextHelp {
       if ($me.closest('.t3js-module-docheader').length) {
         Popover.setOption($me, 'placement', 'bottom');
       }
-    }).on('click', '.help-has-link', (e: any): void => {
+    }).on('shown.bs.popover', this.selector, (e: Event): void => {
+      const $popover = $(e.target).data('bs.popover').$tip;
+      if (!$popover.find('.popover-title').is(':visible')) {
+        $popover.addClass('no-title');
+      }
+    }).on('click', '.tipIsLinked', (e: any): void => {
       $('.popover').each((index: number, popover: Element): void => {
         const $popover = $(popover);
         if ($popover.has(e.target).length) {
-          this.showHelpPopup($('[aria-describedby="' + $popover.attr('id') + '"]'));
+          this.showHelpPopup($popover.data('bs.popover').$element);
         }
       });
     }).on('click', 'body', (e: any): void => {
@@ -125,15 +125,14 @@ class ContextHelp {
       const cshWindow = window.open(
         this.helpModuleUrl +
         '&table=' + $trigger.data('table') +
-        '&field=' + $trigger.data('field') +
-        '&action=detail',
+        '&field=' + $trigger.data('field'),
         'ContextHelpWindow',
         'height=400,width=600,status=0,menubar=0,scrollbars=1',
       );
       cshWindow.focus();
       Popover.hide($trigger);
       return cshWindow;
-    } catch {
+    } catch (e) {
       // do nothing
     }
   }
@@ -149,24 +148,25 @@ class ContextHelp {
     // If a table is defined, use ajax call to get the tooltip's content
     if (table) {
       // Load content
-      new AjaxRequest(this.ajaxUrl).withQueryArguments({
+      $.getJSON(this.ajaxUrl, {
         params: {
           action: 'getContextHelp',
           table: table,
           field: field,
-        }
-      }).get().then(async (response: AjaxResponse): Promise<any> => {
-        const data: HelpData = await response.resolve();
+        },
+      }).done((data: HelpData): void => {
         const title = data.title || '';
         const content = data.content || '<p></p>';
-        const options = <BootstrapPopover.Options>{
+        Popover.setOptions($trigger, {
           title: title,
           content: content,
-        };
-        Popover.setOptions($trigger, options);
-        Popover.update($trigger);
-
-        $trigger.attr('data-loaded', 'true');
+        });
+        $trigger
+          .attr('data-loaded', 'true')
+          .one('hidden.bs.popover', (): void => {
+            Popover.show($trigger);
+          });
+        Popover.hide($trigger);
       });
     }
   }

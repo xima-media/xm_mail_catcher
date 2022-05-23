@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,17 +11,6 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-/**
- * Convert textarea so they grow when it is typed in.
- */
-export class Resizable {
-
-  /**
-   * @param {HTMLTextAreaElement} textarea
-   */
-  public static enable(textarea: HTMLTextAreaElement): void {
-    require(['autosize'], (autosize: Function): void => {
-      autosize(textarea);
-    });
-  }
+export enum TopbarIdentifiersEnum {
+  buttonNavigationComponent = '.t3js-topbar-button-navigationcomponent',
 }

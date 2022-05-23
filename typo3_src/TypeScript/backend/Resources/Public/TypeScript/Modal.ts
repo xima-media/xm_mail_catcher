@@ -12,16 +12,12 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import 'bootstrap';
-import $ from 'jquery';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import {AbstractAction} from './ActionButton/AbstractAction';
-import {ModalResponseEvent} from 'TYPO3/CMS/Backend/ModalInterface';
 import {SeverityEnum} from './Enum/Severity';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import SecurityUtility = require('TYPO3/CMS/Core/SecurityUtility');
+import 'bootstrap';
+import * as $ from 'jquery';
 import Icons = require('./Icons');
 import Severity = require('./Severity');
+import SecurityUtility = require('TYPO3/CMS/Core/SecurityUtility');
 
 enum Identifiers {
   modal = '.t3js-modal',
@@ -62,7 +58,6 @@ interface Button {
   trigger: (e: JQueryEventObject) => {};
   dataAttributes: { [key: string]: string };
   icon: string;
-  action: AbstractAction;
 }
 
 interface Configuration {
@@ -89,24 +84,24 @@ class Modal {
   public readonly types: any = Types;
   public currentModal: JQuery = null;
   private instances: Array<JQuery> = [];
-  private readonly $template: JQuery = $(`
-    <div class="t3js-modal modal fade">
-        <div class="modal-dialog">
-            <div class="t3js-modal-content modal-content">
-                <div class="modal-header">
-                    <h4 class="t3js-modal-title modal-title"></h4>
-                    <button class="t3js-modal-close close">
-                        <span aria-hidden="true">
-                            <span class="t3js-modal-icon-placeholder" data-icon="actions-close"></span>
-                        </span>
-                        <span class="sr-only"></span>
-                    </button>
-                </div>
-                <div class="t3js-modal-body modal-body"></div>
-                <div class="t3js-modal-footer modal-footer"></div>
-            </div>
-        </div>
-    </div>`
+  private readonly $template: JQuery = $(
+    '<div class="t3js-modal modal fade">' +
+    '<div class="modal-dialog">' +
+    '<div class="t3js-modal-content modal-content">' +
+    '<div class="modal-header">' +
+    '<button class="t3js-modal-close close">' +
+    '<span aria-hidden="true">' +
+    '<span class="t3js-modal-icon-placeholder" data-icon="actions-close"></span>' +
+    '</span>' +
+    '<span class="sr-only"></span>' +
+    '</button>' +
+    '<h4 class="t3js-modal-title modal-title"></h4>' +
+    '</div>' +
+    '<div class="t3js-modal-body modal-body"></div>' +
+    '<div class="t3js-modal-footer modal-footer"></div>' +
+    '</div>' +
+    '</div>' +
+    '</div>',
   );
 
   private defaultConfiguration: Configuration = {
@@ -124,28 +119,6 @@ class Modal {
   };
 
   private readonly securityUtility: SecurityUtility;
-
-  private static resolveEventNameTargetElement(evt: Event): HTMLElement | null {
-    const target = evt.target as HTMLElement;
-    const currentTarget = evt.currentTarget as HTMLElement;
-    if (target.dataset && target.dataset.eventName) {
-      return target;
-    } else if (currentTarget.dataset && currentTarget.dataset.eventName) {
-      return currentTarget;
-    }
-    return null;
-  }
-
-  private static createModalResponseEventFromElement(element: HTMLElement, result: boolean): ModalResponseEvent | null {
-    if (!element || !element.dataset.eventName) {
-      return null;
-    }
-    return new CustomEvent(
-      element.dataset.eventName, {
-        bubbles: true,
-        detail: { result, payload: element.dataset.eventPayload || null }
-      });
-  }
 
   constructor(securityUtility: SecurityUtility) {
     this.securityUtility = securityUtility;
@@ -176,13 +149,11 @@ class Modal {
    * @param {Array<string>} additionalCssClasses Additional css classes to add to the modal
    * @returns {JQuery}
    */
-  public confirm(
-    title: string,
-    content: string | JQuery,
-    severity: SeverityEnum = SeverityEnum.warning,
-    buttons: Array<Object> = [],
-    additionalCssClasses?: Array<string>,
-  ): JQuery {
+  public confirm(title: string,
+                 content: string | JQuery,
+                 severity: SeverityEnum = SeverityEnum.warning,
+                 buttons: Array<Object> = [],
+                 additionalCssClasses?: Array<string>): JQuery {
     if (buttons.length === 0) {
       buttons.push(
         {
@@ -229,13 +200,12 @@ class Modal {
    * @param {string} target
    * @returns {JQuery}
    */
-  public loadUrl(
-    title: string,
-    severity: SeverityEnum = SeverityEnum.info,
-    buttons: Array<Object>,
-    url: string,
-    callback?: Function,
-    target?: string,
+  public loadUrl(title: string,
+                 severity: SeverityEnum = SeverityEnum.info,
+                 buttons: Array<Object>,
+                 url: string,
+                 callback?: Function,
+                 target?: string,
   ): JQuery {
     return this.advanced({
       type: Types.ajax,
@@ -258,13 +228,11 @@ class Modal {
    * @param {Array<string>} additionalCssClasses
    * @returns {JQuery}
    */
-  public show(
-    title: string,
-    content: string | JQuery,
-    severity: SeverityEnum = SeverityEnum.info,
-    buttons?: Array<Object>,
-    additionalCssClasses?: Array<string>,
-  ): JQuery {
+  public show(title: string,
+              content: string | JQuery,
+              severity: SeverityEnum = SeverityEnum.info,
+              buttons?: Array<Object>,
+              additionalCssClasses?: Array<string>): JQuery {
     return this.advanced({
       type: Types.default,
       title,
@@ -314,63 +282,6 @@ class Modal {
   }
 
   /**
-   * Sets action buttons for the modal window or removed the footer, if no buttons are given.
-   *
-   * @param {Array<Button>} buttons
-   */
-  public setButtons(buttons: Array<Button>): JQuery {
-    const modalFooter = this.currentModal.find(Identifiers.footer);
-    if (buttons.length > 0) {
-      modalFooter.empty();
-
-      for (let i = 0; i < buttons.length; i++) {
-        const button = buttons[i];
-        const $button = $('<button />', {'class': 'btn'});
-        $button.html('<span>' + this.securityUtility.encodeHtml(button.text, false) + '</span>');
-        if (button.active) {
-          $button.addClass('t3js-active');
-        }
-        if (button.btnClass !== '') {
-          $button.addClass(button.btnClass);
-        }
-        if (button.name !== '') {
-          $button.attr('name', button.name);
-        }
-        if (button.action) {
-          $button.on('click', (): void => {
-            modalFooter.find('button').not($button).addClass('disabled');
-            button.action.execute($button.get(0)).then((): void => {
-              this.currentModal.modal('hide');
-            });
-          });
-        } else if (button.trigger) {
-          $button.on('click', button.trigger);
-        }
-        if (button.dataAttributes) {
-          if (Object.keys(button.dataAttributes).length > 0) {
-            Object.keys(button.dataAttributes).map((value: string): any => {
-              $button.attr('data-' + value, button.dataAttributes[value]);
-            });
-          }
-        }
-        if (button.icon) {
-          $button.prepend('<span class="t3js-modal-icon-placeholder" data-icon="' + button.icon + '"></span>');
-        }
-        modalFooter.append($button);
-      }
-      modalFooter.show();
-      modalFooter.find('button')
-        .on('click', (e: JQueryEventObject): void => {
-          $(e.currentTarget).trigger('button.clicked');
-        });
-    } else {
-      modalFooter.hide();
-    }
-
-    return this.currentModal;
-  }
-
-  /**
    * Initialize markup with data attributes
    *
    * @param {HTMLDocument} theDocument
@@ -379,13 +290,13 @@ class Modal {
     $(theDocument).on('click', '.t3js-modal-trigger', (evt: JQueryEventObject): void => {
       evt.preventDefault();
       const $element = $(evt.currentTarget);
-      const content = $element.data('bs-content') || 'Are you sure?';
+      const content = $element.data('content') || 'Are you sure?';
       const severity = typeof SeverityEnum[$element.data('severity')] !== 'undefined'
         ? SeverityEnum[$element.data('severity')]
         : SeverityEnum.info;
       let url = $element.data('url') || null;
       if (url !== null) {
-        const separator = url.includes('?') ? '&' : '?';
+        const separator = (url.indexOf('?') > -1) ? '&' : '?';
         const params = $.param({data: $element.data()});
         url = url + separator + params;
       }
@@ -401,12 +312,6 @@ class Modal {
             btnClass: 'btn-default',
             trigger: (): void => {
               this.currentModal.trigger('modal-dismiss');
-              const eventNameTarget = Modal.resolveEventNameTargetElement(evt);
-              const event = Modal.createModalResponseEventFromElement(eventNameTarget, false);
-              if (event !== null) {
-                // dispatch event at the element having `data-event-name` declared
-                eventNameTarget.dispatchEvent(event);
-              }
             },
           },
           {
@@ -414,16 +319,7 @@ class Modal {
             btnClass: 'btn-' + Severity.getCssClass(severity),
             trigger: (): void => {
               this.currentModal.trigger('modal-dismiss');
-              const eventNameTarget = Modal.resolveEventNameTargetElement(evt);
-              const event = Modal.createModalResponseEventFromElement(eventNameTarget, true);
-              if (event !== null) {
-                // dispatch event at the element having `data-event-name` declared
-                eventNameTarget.dispatchEvent(event);
-              }
-              let targetLocation = $element.attr('data-uri') || $element.data('href') || $element.attr('href');
-              if (targetLocation && targetLocation !== '#') {
-                evt.target.ownerDocument.location.href = targetLocation;
-              }
+              evt.target.ownerDocument.location.href = $element.data('href') || $element.attr('href');
             },
           },
         ],
@@ -454,23 +350,21 @@ class Modal {
     if (configuration.type === 'ajax') {
       const contentTarget = configuration.ajaxTarget ? configuration.ajaxTarget : Identifiers.body;
       const $loaderTarget = currentModal.find(contentTarget);
-      Icons.getIcon('spinner-circle', Icons.sizes.default, null, null, Icons.markupIdentifiers.inline).then((icon: string): void => {
+      Icons.getIcon('spinner-circle', Icons.sizes.default, null, null, Icons.markupIdentifiers.inline).done((icon: string): void => {
         $loaderTarget.html('<div class="modal-loading">' + icon + '</div>');
-        new AjaxRequest(configuration.content as string).get().then(async (response: AjaxResponse): Promise<void> => {
-          const html = await response.raw().text();
-          if (!this.currentModal.parent().length) {
-            // attach modal to DOM, otherwise embedded scripts are not executed by jquery append()
-            this.currentModal.appendTo('body');
-          }
-          this.currentModal.find(contentTarget)
-            .empty()
-            .append(html);
-
-          if (configuration.ajaxCallback) {
-            configuration.ajaxCallback();
-          }
-          this.currentModal.trigger('modal-loaded');
-        });
+        $.get(
+          <string>configuration.content,
+          (response: string): void => {
+            this.currentModal.find(contentTarget)
+              .empty()
+              .append(response);
+            if (configuration.ajaxCallback) {
+              configuration.ajaxCallback();
+            }
+            this.currentModal.trigger('modal-loaded');
+          },
+          'html',
+        );
       });
     } else if (configuration.type === 'iframe') {
       currentModal.find(Identifiers.body).append(
@@ -494,37 +388,64 @@ class Modal {
       currentModal.find(Identifiers.body).append(configuration.content);
     }
 
+    // Add buttons
+    if (configuration.buttons.length > 0) {
+      for (let i = 0; i < configuration.buttons.length; i++) {
+        const button = configuration.buttons[i];
+        const $button = $('<button />', {'class': 'btn'});
+        $button.html('<span>' + this.securityUtility.encodeHtml(button.text, false) + '</span>');
+        if (button.active) {
+          $button.addClass('t3js-active');
+        }
+        if (button.btnClass !== '') {
+          $button.addClass(button.btnClass);
+        }
+        if (button.name !== '') {
+          $button.attr('name', button.name);
+        }
+        if (button.trigger) {
+          $button.on('click', button.trigger);
+        }
+        if (button.dataAttributes) {
+          if (Object.keys(button.dataAttributes).length > 0) {
+            Object.keys(button.dataAttributes).map((value: string): any => {
+              $button.attr('data-' + value, button.dataAttributes[value]);
+            });
+          }
+        }
+        if (button.icon) {
+          $button.prepend('<span class="t3js-modal-icon-placeholder" data-icon="' + button.icon + '"></span>');
+        }
+        currentModal.find(Identifiers.footer).append($button);
+      }
+      currentModal
+        .find(Identifiers.footer).find('button')
+        .on('click', (e: JQueryEventObject): void => {
+          $(e.currentTarget).trigger('button.clicked');
+        });
+    } else {
+      currentModal.find(Identifiers.footer).remove();
+    }
+
     currentModal.on('shown.bs.modal', (e: JQueryEventObject): void => {
       const $me = $(e.currentTarget);
-      const $backdrop = $me.prev('.modal-backdrop');
-
-      // We use 1000 as the overall base to circumvent a stuttering UI as Bootstrap uses a z-index of 1040 for backdrops
-      // on initial rendering - this will clash again when at least four modals are open, which is fine and should never happen
-      const baseZIndex = 1000 + (10 * this.instances.length);
-      const backdropZIndex = baseZIndex - 10;
-      $me.css('z-index', baseZIndex);
-      $backdrop.css('z-index', backdropZIndex);
-
       // focus the button which was configured as active button
       $me.find(Identifiers.footer).find('.t3js-active').first().focus();
       // Get Icons
       $me.find(Identifiers.iconPlaceholder).each((index: number, elem: Element): void => {
-        Icons.getIcon($(elem).data('icon'), Icons.sizes.small, null, null, Icons.markupIdentifiers.inline).then((icon: string): void => {
+        Icons.getIcon($(elem).data('icon'), Icons.sizes.small, null, null, Icons.markupIdentifiers.inline).done((icon: string): void => {
           this.currentModal.find(Identifiers.iconPlaceholder + '[data-icon=' + $(icon).data('identifier') + ']').replaceWith(icon);
         });
       });
     });
 
     // Remove modal from Modal.instances when hidden
-    currentModal.on('hide.bs.modal', (): void => {
+    currentModal.on('hidden.bs.modal', (e: JQueryEventObject): void => {
       if (this.instances.length > 0) {
         const lastIndex = this.instances.length - 1;
         this.instances.splice(lastIndex, 1);
         this.currentModal = this.instances[lastIndex - 1];
       }
-    });
-
-    currentModal.on('hidden.bs.modal', (e: JQueryEventObject): void => {
       currentModal.trigger('modal-destroyed');
       $(e.currentTarget).remove();
       // Keep class modal-open on body tag as long as open modals exist
@@ -536,8 +457,6 @@ class Modal {
     // When modal is opened/shown add it to Modal.instances and make it Modal.currentModal
     currentModal.on('show.bs.modal', (e: JQueryEventObject): void => {
       this.currentModal = $(e.currentTarget);
-      // Add buttons
-      this.setButtons(configuration.buttons);
       this.instances.push(this.currentModal);
     });
     currentModal.on('modal-dismiss', (e: JQueryEventObject): void => {
@@ -549,8 +468,7 @@ class Modal {
       configuration.callback(currentModal);
     }
 
-    currentModal.modal('show');
-    return currentModal;
+    return currentModal.modal();
   }
 }
 
@@ -567,7 +485,7 @@ try {
     top.TYPO3.Modal.initializeMarkupTrigger(document);
     modalObject = top.TYPO3.Modal;
   }
-} catch {
+} catch (e) {
   // This only happens if the opener, parent or top is some other url (eg a local file)
   // which loaded the current window. Then the browser's cross domain policy jumps in
   // and raises an exception.

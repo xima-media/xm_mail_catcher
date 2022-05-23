@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,14 +11,11 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 import Viewport = require('./Viewport');
 import Icons = require('./Icons');
 import 'jquery/autocomplete';
-import './Input/Clearable';
-import {html, render} from 'lit';
-import {unsafeHTML} from 'lit/directives/unsafe-html';
-import {renderHTML} from 'TYPO3/CMS/Core/lit-helper';
+import 'TYPO3/CMS/Backend/jquery.clearable';
 
 enum Identifiers {
   containerSelector = '#typo3-cms-backend-backend-toolbaritems-livesearchtoolbaritem',
@@ -58,16 +54,14 @@ class LiveSearch {
 
       // Unset height, width and z-index
       $(Identifiers.toolbarItem).removeAttr('style');
-      let searchField: HTMLInputElement;
-      if ((searchField = document.querySelector(Identifiers.searchFieldSelector)) !== null) {
-        searchField.clearable({
-          onClear: (): void => {
-            if ($(Identifiers.dropdownToggle).hasClass('show')) {
-              $(Identifiers.dropdownToggle).dropdown('toggle');
-            }
-          },
-        });
-      }
+
+      $(Identifiers.searchFieldSelector).clearable({
+        onClear: (): void => {
+          if ($(Identifiers.toolbarItem).hasClass('open')) {
+            $(Identifiers.dropdownToggle).dropdown('toggle');
+          }
+        },
+      });
     });
   }
 
@@ -101,28 +95,28 @@ class LiveSearch {
         };
       },
       formatGroup: (suggestion: Suggestion, category: string, i: number): string => {
-        return renderHTML(html`
-          ${i > 0 ? html`<hr>` : ''}
-          <h3 class="dropdown-headline">${category}</h3>
-        `);
+        let html = '';
+        // add a divider if it's not the first group
+        if (i > 0) {
+          html = '<hr>';
+        }
+        return html + '<h3 class="dropdown-headline">' + category + '</h3>';
       },
       // Rendering of each item
       formatResult: (suggestion: Suggestion): string => {
-        return renderHTML(html`
-          <div class="dropdown-table">
-            <div class="dropdown-table-row">
-              <div class="dropdown-table-column dropdown-table-icon">
-                ${unsafeHTML(suggestion.data.iconHTML)}
-              </div>
-              <div class="dropdown-table-column dropdown-table-title">
-                <a class="dropdown-table-title-ellipsis dropdown-list-link"
-                   href="#" data-pageid="${suggestion.data.pageId}" data-target="${suggestion.data.editLink}">
-                  ${suggestion.data.title}
-                </a>
-              </div>
-            </div>
-          </div>
-        `);
+        return ''
+          + '<div class="dropdown-table">'
+          + '<div class="dropdown-table-row">'
+          + '<div class="dropdown-table-column dropdown-table-icon">' + suggestion.data.iconHTML + '</div>'
+          + '<div class="dropdown-table-column dropdown-table-title">'
+          + '<a class="dropdown-table-title-ellipsis dropdown-list-link"'
+          + ' href="#" data-pageid="' + suggestion.data.pageId + '" data-target="' + suggestion.data.editLink + '">'
+          + suggestion.data.title
+          + '</a>'
+          + '</div>'
+          + '</div>'
+          + '</div>'
+          + '';
       },
       onSearchStart: (): void => {
         const $toolbarItem = $(Identifiers.toolbarItem);
@@ -134,7 +128,7 @@ class LiveSearch {
             '',
             Icons.states.default,
             Icons.markupIdentifiers.inline,
-          ).then((markup: string): void => {
+          ).done((markup: string): void => {
             $toolbarItem.find('.icon-apps-toolbar-menu-search').replaceWith(markup);
           });
         }
@@ -142,7 +136,7 @@ class LiveSearch {
       onSearchComplete: (): void => {
         const $toolbarItem = $(Identifiers.toolbarItem);
         const $searchField = $(Identifiers.searchFieldSelector);
-        if (!$(Identifiers.dropdownToggle).hasClass('show') && $searchField.val().length > 1) {
+        if (!$toolbarItem.hasClass('open') && $searchField.val().length > 1) {
           $(Identifiers.dropdownToggle).dropdown('toggle');
           $searchField.focus();
         }
@@ -154,7 +148,7 @@ class LiveSearch {
             '',
             Icons.states.default,
             Icons.markupIdentifiers.inline,
-          ).then((markup: string): void => {
+          ).done((markup: string): void => {
             $toolbarItem.find('.icon-spinner-circle-light').replaceWith(markup);
           });
         }
@@ -165,14 +159,14 @@ class LiveSearch {
           TYPO3.lang.liveSearch_showAllResults +
           '</a>' +
           '</div>');
-        if (!$(Identifiers.dropdownToggle).hasClass('show')) {
-          $(Identifiers.dropdownToggle).dropdown('show');
+        if (!$(Identifiers.toolbarItem).hasClass('open')) {
+          $(Identifiers.dropdownToggle).dropdown('toggle');
           $(Identifiers.searchFieldSelector).focus();
         }
       },
       onHide: (): void => {
-        if ($(Identifiers.dropdownToggle).hasClass('show')) {
-          $(Identifiers.dropdownToggle).dropdown('hide');
+        if ($(Identifiers.toolbarItem).hasClass('open')) {
+          $(Identifiers.dropdownToggle).dropdown('toggle');
         }
       },
     });
@@ -188,7 +182,7 @@ class LiveSearch {
       $searchField.val('').trigger('change');
     });
     if ($searchField.length) {
-      const $autocompleteContainer = $('.' + Identifiers.toolbarItem.substr(1, Identifiers.toolbarItem.length));
+      const $autocompleteContainer = $('.' + $searchField.autocomplete().options.containerClass);
       $autocompleteContainer.on('click.autocomplete', '.dropdown-list-link', (evt: JQueryEventObject): void => {
         evt.preventDefault();
 

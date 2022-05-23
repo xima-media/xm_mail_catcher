@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import DocumentService = require('TYPO3/CMS/Core/DocumentService');
+import * as $ from 'jquery';
 
 /**
  * This module is used for the field control "Reset selection" used for selectSingleBox
@@ -21,7 +20,7 @@ class ResetSelection {
   private controlElement: HTMLElement = null;
 
   constructor(controlElementId: string) {
-    DocumentService.ready().then((): void => {
+    $((): void => {
       this.controlElement = <HTMLElement>document.querySelector(controlElementId);
       if (this.controlElement !== null) {
         this.controlElement.addEventListener('click', this.registerClickHandler);

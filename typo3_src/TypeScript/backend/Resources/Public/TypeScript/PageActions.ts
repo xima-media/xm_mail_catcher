@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -13,7 +12,7 @@
  */
 
 import {KeyTypesEnum} from './Enum/KeyTypes';
-import $ from 'jquery';
+import * as $ from 'jquery';
 import PersistentStorage = require('./Storage/Persistent');
 import NewContentElement = require('./Wizard/NewContentElement');
 
@@ -74,17 +73,20 @@ class PageActions {
       return;
     }
 
-    const $editActionLink = $(
-      '<button type="button" class="btn btn-link" aria-label="' + TYPO3.lang.editPageTitle + '" data-action="edit">' +
-      '<span class="t3-icon fa fa-pencil"></span>' +
-      '</button>'
-    );
-    $editActionLink.on('click', (): void => {
+    const $editActionLink = $('<a class="hidden" href="#" data-action="edit"><span class="t3-icon fa fa-pencil"></span></a>');
+    $editActionLink.on('click', (e: JQueryEventObject): void => {
+      e.preventDefault();
       this.editPageTitle();
     });
     this.$pageTitle
       .on('dblclick',  (): void => {
         this.editPageTitle();
+      })
+      .on('mouseover', (): void => {
+        $editActionLink.removeClass('hidden');
+      })
+      .on('mouseout', (): void => {
+        $editActionLink.addClass('hidden');
       })
       .append($editActionLink);
   }
@@ -132,12 +134,16 @@ class PageActions {
    */
   private editPageTitle(): void {
     const $inputFieldWrap = $(
-        '<form>' +
+      '<form>' +
       '<div class="form-group">' +
       '<div class="input-group input-group-lg">' +
       '<input class="form-control t3js-title-edit-input">' +
+      '<span class="input-group-btn">' +
       '<button class="btn btn-default" type="button" data-action="submit"><span class="t3-icon fa fa-floppy-o"></span></button> ' +
+      '</span>' +
+      '<span class="input-group-btn">' +
       '<button class="btn btn-default" type="button" data-action="cancel"><span class="t3-icon fa fa-times"></span></button> ' +
+      '</span>' +
       '</div>' +
       '</div>' +
       '</form>',
@@ -150,7 +156,7 @@ class PageActions {
     });
 
     $inputFieldWrap.find('[data-action="submit"]').on('click', (): void => {
-      const newPageTitle = $inputField.val().trim();
+      const newPageTitle = $.trim($inputField.val());
       if (newPageTitle !== '' && this.$pageTitle.text() !== newPageTitle) {
         this.saveChanges($inputField);
       } else {
@@ -169,8 +175,7 @@ class PageActions {
     $h1.replaceWith($inputFieldWrap);
     $inputField.val($h1.text()).focus();
 
-    // Use type 'keydown' instead of 'keyup' which would be triggered directly in case a keyboard is used to start editing.
-    $inputField.on('keydown', (e: JQueryEventObject): void => {
+    $inputField.on('keyup', (e: JQueryEventObject): void => {
       switch (e.which) {
         case KeyTypesEnum.ENTER:
           $inputFieldWrap.find('[data-action="submit"]').trigger('click');
@@ -207,12 +212,12 @@ class PageActions {
     parameters.data.pages[recordUid] = {title: $field.val()};
 
     require(['TYPO3/CMS/Backend/AjaxDataHandler'], (DataHandler: any): void => {
-      DataHandler.process(parameters).then((): void => {
+      DataHandler.process(parameters).done((): void => {
         $inputFieldWrap.find('[data-action=cancel]').trigger('click');
         this.$pageTitle.text($field.val());
         this.initializePageTitleRenaming();
-        top.document.dispatchEvent(new CustomEvent('typo3:pagetree:refresh'));
-      }).catch((): void => {
+        top.TYPO3.Backend.NavigationContainer.PageTree.refreshTree();
+      }).fail((): void => {
         $inputFieldWrap.find('[data-action=cancel]').trigger('click');
       });
     });
@@ -222,10 +227,8 @@ class PageActions {
    * Activate New Content Element Wizard
    */
   private initializeNewContentElementWizard(): void {
-    Array.from(document.querySelectorAll(IdentifierEnum.newButton)).forEach((element: HTMLElement): void => {
-      element.classList.remove('disabled');
-    });
-    $(IdentifierEnum.newButton).on('click', (e: JQueryEventObject): void => {
+    $(IdentifierEnum.newButton).removeClass('disabled');
+    $(IdentifierEnum.newButton).click((e: JQueryEventObject): void => {
       e.preventDefault();
 
       const $me = $(e.currentTarget);

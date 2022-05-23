@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,9 +11,15 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-export interface ModalResponseEvent extends CustomEvent {
-  readonly detail: {
-    result: boolean,
-    payload: any
-  };
+
+interface SetTemporaryMountPoint {
+  (pid: number): void;
+}
+
+export interface NavigationComponentInterface {
+  initialize: Function;
+  refreshOrFilterTree: Function;
+  setTemporaryMountPoint: SetTemporaryMountPoint;
+  unsetTemporaryMountPoint: Function;
+  selectNode: Function;
 }

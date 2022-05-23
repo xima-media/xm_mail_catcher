@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 import Consumable = require('./Consumable');
 import InteractionRequest = require('./InteractionRequest');
 
@@ -24,7 +23,7 @@ class ConsumerScope {
   }
 
   public hasConsumer(consumer: Consumable): boolean {
-    return this.consumers.includes(consumer);
+    return this.consumers.indexOf(consumer) !== -1;
   }
 
   public attach(consumer: Consumable): void {

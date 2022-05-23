@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -17,46 +16,6 @@
  */
 class Utility {
   /**
-   * Splits a string by a given delimiter and trims the values
-   *
-   * @param {string} delimiter
-   * @param {string} string
-   * @return Array<string>
-   */
-  public static trimExplode(delimiter: string, string: string): Array<string> {
-    return string.split(delimiter).map((item: string) => item.trim()).filter((item: string) => item !== '');
-  }
-
-  /**
-   * Trims string items.
-   *
-   * @param {string[]|any[]} items
-   */
-  public static trimItems(items: any[]): any[] {
-    return items.map((item: any) => {
-      if (item instanceof String) {
-        return item.trim();
-      }
-      return item;
-    });
-  }
-
-  /**
-   * Splits a string by a given delimiter and converts the values to integer
-   *
-   * @param {string} delimiter
-   * @param {string} string
-   * @param {boolean} excludeZeroValues
-   * @return Array<number>
-   */
-  public static intExplode(delimiter: string, string: string, excludeZeroValues: boolean = false): Array<number> {
-    return string
-      .split(delimiter)
-      .map((item: string) => parseInt(item, 10))
-      .filter((item: number) => !isNaN(item) || excludeZeroValues && item === 0);
-  }
-
-  /**
    * Checks if a given number is really a number
    *
    * Taken from:
@@ -65,7 +24,7 @@ class Utility {
    * @param {number} value
    * @returns {boolean}
    */
-  public static isNumber(value: number): boolean {
+  public isNumber = (value: number): boolean => {
     return !isNaN(parseFloat(value.toString())) && isFinite(value);
   }
 
@@ -76,7 +35,7 @@ class Utility {
    * @param {string} parameter
    * @returns {string}
    */
-  public static getParameterFromUrl(url: string, parameter: string): string {
+  public getParameterFromUrl = (url: string, parameter: string): string => {
     if (typeof url.split !== 'function') {
       return '';
     }
@@ -107,71 +66,19 @@ class Utility {
    * @param {string} value
    * @returns {string}
    */
-  public static updateQueryStringParameter(url: string, key: string, value: string): string {
+  public updateQueryStringParameter = (url: string, key: string, value: string): string => {
     const re = new RegExp('([?&])' + key + '=.*?(&|$)', 'i');
-    const separator = url.includes('?') ? '&' : '?';
+    const separator = url.indexOf('?') !== -1 ? '&' : '?';
 
     if (url.match(re)) {
       return url.replace(re, '$1' + key + '=' + value + '$2');
     }
     return url + separator + key + '=' + value;
   }
-
-  public static convertFormToObject(form: HTMLFormElement): { [key: string]: any } {
-    const obj: { [key: string]: any } = {};
-    form.querySelectorAll('input, select, textarea').forEach((element: HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement): void => {
-      const name = element.name;
-      const value = element.value;
-
-      if (name) {
-        if (element instanceof HTMLInputElement && element.type == 'checkbox') {
-          if (obj[name] === undefined) {
-            obj[name] = [];
-          }
-          if (element.checked){
-            obj[name].push(value);
-          }
-
-        }else{
-          obj[name] = value;
-        }
-      }
-    });
-
-    return obj;
-  }
-
-  /**
-   * Performs a deep merge of `source` into `target`.
-   * Mutates `target` only but not its objects and arrays.
-   *
-   * @author inspired by [jhildenbiddle](https://stackoverflow.com/a/48218209/4828813).
-   */
-  public static mergeDeep(...objects: object[]) {
-    type IndexedObject = { [key: string]: any };
-    const isObject = (obj: any) => {
-      return obj && typeof obj === 'object';
-    };
-
-    return objects.reduce((prev: IndexedObject, obj: IndexedObject): IndexedObject => {
-      Object.keys(obj).forEach((key: string): void => {
-        const pVal = prev[key];
-        const oVal = obj[key];
-
-        if (Array.isArray(pVal) && Array.isArray(oVal)) {
-          prev[key] = pVal.concat(...oVal);
-        }
-        else if (isObject(pVal) && isObject(oVal)) {
-          prev[key] = Utility.mergeDeep(pVal, oVal);
-        }
-        else {
-          prev[key] = oVal;
-        }
-      });
-
-      return prev;
-    }, {});
-  }
 }
 
-export = Utility;
+const utilityObject = new Utility();
+
+// @deprecated since TYPO3 v9, will be removed in TYPO3 v10. Use the TYPO3/CMS/Backend/Utility module in AMD instead
+TYPO3.Utility = utilityObject;
+export = utilityObject;

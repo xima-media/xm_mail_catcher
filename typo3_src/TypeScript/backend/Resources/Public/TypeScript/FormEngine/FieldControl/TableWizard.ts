@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import DocumentService = require('TYPO3/CMS/Core/DocumentService');
+import * as $ from 'jquery';
 import FormEngine = require('TYPO3/CMS/Backend/FormEngine');
 
 /**
@@ -22,7 +21,7 @@ class TableWizard {
   private controlElement: HTMLElement = null;
 
   constructor(controlElementId: string) {
-    DocumentService.ready().then((): void => {
+    $((): void => {
       this.controlElement = <HTMLElement>document.querySelector(controlElementId);
       this.controlElement.addEventListener('click', this.registerClickHandler);
     });

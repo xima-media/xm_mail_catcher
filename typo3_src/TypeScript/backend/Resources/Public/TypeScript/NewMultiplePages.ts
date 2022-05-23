@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 
 enum Identifiers {
   containerSelector = '.t3js-newmultiplepages-container',

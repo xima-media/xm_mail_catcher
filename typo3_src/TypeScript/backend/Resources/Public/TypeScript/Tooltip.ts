@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,8 +11,8 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {Tooltip as BootstrapTooltip} from 'bootstrap';
-import DocumentService = require('TYPO3/CMS/Core/DocumentService');
+import 'bootstrap';
+import * as $ from 'jquery';
 
 /**
  * The main tooltip object
@@ -21,102 +20,37 @@ import DocumentService = require('TYPO3/CMS/Core/DocumentService');
  * Hint: Due to the current usage of tooltips, this class can't be static right now
  */
 class Tooltip {
-  private static applyAttributes(attributes: { [key: string]: string }, node: HTMLElement): void {
-    for (const [attribute, value] of Object.entries(attributes)) {
-      node.setAttribute(attribute, value);
-    }
-  }
-
   constructor() {
-    DocumentService.ready().then((): void => {
-      this.initialize('[data-bs-toggle="tooltip"]');
+    $((): void => {
+      this.initialize('[data-toggle="tooltip"]');
     });
   }
 
-  public initialize(selector: string, options: Partial<BootstrapTooltip.Options> = {}): void {
-    if (Object.entries(options).length === 0) {
-      options = {
-        container: 'body',
-        trigger: 'hover',
-        delay: {
-          show: 500,
-          hide: 100
-        }
-      }
-    }
-    const elements = document.querySelectorAll(selector);
-    for (const element of elements) {
-      // @ts-ignore
-      // todo this method is missing in types/bootstrap.
-      // todo see: https://github.com/DefinitelyTyped/DefinitelyTyped/discussions/54289
-      // todo Remove ts-ignore, when it is added.
-      // Ensure elements are not initialized multiple times.
-      BootstrapTooltip.getOrCreateInstance(element, options);
-    }
+  public initialize(selector: string, options?: object): void {
+    options = options || {};
+    $(selector).tooltip(options);
   }
 
   /**
-   * Show tooltip on element(s)
+   * Show tooltip on $element
    *
-   * @param {NodeListOf<HTMLElement>|HTMLElement|JQuery} elements
+   * @param {Object} $element
    * @param {String} title
    */
-  public show(elements: NodeListOf<HTMLElement> | HTMLElement | JQuery, title: string): void {
-    const attributes = {
-      'data-bs-placement': 'auto',
-      title: title
-    };
-
-    if (!(elements instanceof NodeList || elements instanceof HTMLElement)) {
-      console.warn('Passing an jQuery object to Tooltip.show() has been marked as deprecated. Either pass a NodeList or an HTMLElement.');
-      for (const [attribute, value] of Object.entries(attributes)) {
-        elements.attr(attribute, value)
-      }
-      elements.tooltip('show');
-      return;
-    }
-
-    if (elements instanceof NodeList) {
-      for (const node of elements) {
-        Tooltip.applyAttributes(attributes, node);
-        BootstrapTooltip.getInstance(node).show();
-      }
-      return;
-    }
-
-    if (elements instanceof HTMLElement) {
-      Tooltip.applyAttributes(attributes, elements);
-      BootstrapTooltip.getInstance(elements).show();
-      return;
-    }
+  public show($element: JQuery, title: string): void {
+    $element
+      .attr('data-placement', 'auto')
+      .attr('data-title', title)
+      .tooltip('show');
   }
 
   /**
-   * Hide tooltip on element(s)
+   * Hide tooltip on $element
    *
-   * @param {NodeListOf<HTMLElement>|HTMLElement|JQuery} elements
+   * @param {Object} $element
    */
-  public hide(elements: NodeListOf<HTMLElement> | HTMLElement | JQuery): void {
-    if (!(elements instanceof NodeList || elements instanceof HTMLElement)) {
-      console.warn('Passing an jQuery object to Tooltip.hide() has been marked as deprecated. Either pass a NodeList or an HTMLElement.');
-      elements.tooltip('hide');
-      return;
-    }
-
-    if (elements instanceof NodeList) {
-      for (const node of elements) {
-        const instance = BootstrapTooltip.getInstance(node);
-        if (instance !== null) {
-          instance.hide();
-        }
-      }
-      return;
-    }
-
-    if (elements instanceof HTMLElement) {
-      BootstrapTooltip.getInstance(elements).hide();
-      return;
-    }
+  public hide($element: JQuery): void {
+    $element.tooltip('hide');
   }
 }
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -14,8 +13,7 @@
 
 import {ScaffoldIdentifierEnum} from '../Enum/Viewport/ScaffoldIdentifier';
 import {AbstractContainer} from './AbstractContainer';
-import $ from 'jquery';
-import ClientRequest = require('../Event/ClientRequest');
+import * as $  from 'jquery';
 import InteractionRequest = require('../Event/InteractionRequest');
 import Loader = require('./Loader');
 import Utility = require('../Utility');
@@ -37,31 +35,29 @@ class ContentContainer extends AbstractContainer {
   }
 
   /**
-   * @param {string} urlToLoad
+   * @param {String} urlToLoad
    * @param {InteractionRequest} [interactionRequest]
-   * @param {string|null} module
    * @returns {JQueryDeferred<TriggerRequest>}
    */
-  public setUrl(urlToLoad: string, interactionRequest?: InteractionRequest, module?: string): JQueryDeferred<TriggerRequest> {
+  public setUrl(urlToLoad: string, interactionRequest: InteractionRequest): JQueryDeferred<TriggerRequest> {
     let deferred: JQueryDeferred<TriggerRequest>;
-    const router = this.resolveRouterElement();
-    // abort, if router can not be found
-    if (router === null) {
+    const iFrame = this.resolveIFrameElement();
+    // abort, if no IFRAME can be found
+    if (iFrame === null) {
       deferred = $.Deferred();
       deferred.reject();
       return deferred;
-    }
-    if (!(interactionRequest instanceof InteractionRequest)) {
-      interactionRequest = new ClientRequest('typo3.setUrl', null);
     }
     deferred = this.consumerScope.invoke(
       new TriggerRequest('typo3.setUrl', interactionRequest),
     );
     deferred.then((): void => {
       Loader.start();
-      router.setAttribute('endpoint', urlToLoad);
-      router.setAttribute('module', module ? module : null);
-      router.parentElement.addEventListener('typo3-module-loaded', (): void => Loader.finish(), { once: true });
+      $(ScaffoldIdentifierEnum.contentModuleIframe)
+        .attr('src', urlToLoad)
+        .one('load', (): void => {
+          Loader.finish();
+        });
     });
     return deferred;
   }
@@ -70,14 +66,15 @@ class ContentContainer extends AbstractContainer {
    * @returns {string}
    */
   public getUrl(): string {
-    return this.resolveRouterElement().getAttribute('endpoint');
+    return $(ScaffoldIdentifierEnum.contentModuleIframe).attr('src');
   }
 
   /**
+   * @param {boolean} forceGet
    * @param {InteractionRequest} interactionRequest
    * @returns {JQueryDeferred<{}>}
    */
-  public refresh(interactionRequest?: InteractionRequest): JQueryDeferred<{}> {
+  public refresh(forceGet: boolean, interactionRequest: InteractionRequest): JQueryDeferred<{}> {
     let deferred;
     const iFrame = <HTMLIFrameElement>this.resolveIFrameElement();
     // abort, if no IFRAME can be found
@@ -90,7 +87,7 @@ class ContentContainer extends AbstractContainer {
       new TriggerRequest('typo3.refresh', interactionRequest),
     );
     deferred.then((): void => {
-      iFrame.contentWindow.location.reload();
+      iFrame.contentWindow.location.reload(forceGet);
     });
     return deferred;
   }
@@ -108,10 +105,6 @@ class ContentContainer extends AbstractContainer {
       return null;
     }
     return $iFrame.get(0);
-  }
-
-  private resolveRouterElement(): HTMLElement {
-    return document.querySelector(ScaffoldIdentifierEnum.contentModuleRouter);
   }
 }
 

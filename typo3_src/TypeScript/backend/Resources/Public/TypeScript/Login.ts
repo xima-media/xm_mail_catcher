@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -13,18 +12,16 @@
  */
 
 import 'bootstrap';
-import $ from 'jquery';
-import 'TYPO3/CMS/Backend/Input/Clearable';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
+import * as $ from 'jquery';
+import 'TYPO3/CMS/Backend/jquery.clearable';
 
 interface PreflightResponse {
   capabilities: PreflightResponseCapabilities;
 }
 
 interface PreflightResponseCapabilities {
-  cookie: boolean,
-  referrer: boolean
+  cookie: boolean;
+  referrer: boolean;
 }
 
 /**
@@ -52,7 +49,6 @@ class BackendLogin {
       useridentField: '.t3js-login-userident-field',
     };
 
-    this.checkLoginRefresh();
     this.checkCookieSupport();
     this.checkForInterfaceCookie();
     this.checkDocumentReferrerSupport();
@@ -81,8 +77,7 @@ class BackendLogin {
    * Show the loading spinner in the submit button
    */
   private showLoadingIndicator(): void {
-    const button = $(this.options.submitButton);
-    button.html(button.data('loading-text'));
+    $(this.options.submitButton).button('loading');
   }
 
   /**
@@ -136,14 +131,16 @@ class BackendLogin {
     if (typeof TYPO3.settings === 'undefined' || typeof TYPO3.settings.ajaxUrls === 'undefined') {
       return;
     }
-    new AjaxRequest(TYPO3.settings.ajaxUrls.login_preflight).get()
-      .then(async (response: AjaxResponse) => {
-        const result = await response.resolve('application/json') as PreflightResponse;
+    $.ajax({
+      url: TYPO3.settings.ajaxUrls.login_preflight,
+      type: 'get',
+      success: (result: PreflightResponse): void => {
         if (result.capabilities.referrer !== true) {
           document.querySelectorAll(this.options.errorNoReferrer)
             .forEach((element: HTMLElement): void => element.classList.remove('hidden'));
         }
-      });
+      },
+    });
   }
 
   /**
@@ -160,16 +157,6 @@ class BackendLogin {
   private hideCookieWarning(): void {
     $(this.options.formFields).removeClass('hidden');
     $(this.options.errorNoCookies).addClass('hidden');
-  }
-
-  private checkLoginRefresh(): void {
-    const loginRefresh = document.querySelector(this.options.loginForm + ' input[name="loginRefresh"]');
-    if (loginRefresh instanceof HTMLInputElement && loginRefresh.value) {
-      if (window.opener && window.opener.TYPO3 && window.opener.TYPO3.LoginRefresh) {
-        window.opener.TYPO3.LoginRefresh.startTask();
-        window.close();
-      }
-    }
   }
 
   /**
@@ -211,9 +198,7 @@ class BackendLogin {
       $(document).on('change blur', this.options.interfaceField, this.interfaceSelectorChanged.bind(this));
     }
 
-    (<NodeListOf<HTMLInputElement>>document.querySelectorAll('.t3js-clearable')).forEach(
-      (clearableField: HTMLInputElement) => clearableField.clearable(),
-    );
+    $('.t3js-clearable').clearable();
 
     // carousel news height transition
     $('.t3js-login-news-carousel').on('slide.bs.carousel', (e: any) => {

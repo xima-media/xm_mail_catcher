@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,9 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
+import * as $ from 'jquery';
 import Icons = require('../Icons');
 import Notification = require('../Notification');
 import Viewport = require('../Viewport');
@@ -62,24 +59,30 @@ class ClearCacheMenu {
     const $toolbarItemIcon = $(Identifiers.toolbarIconSelector, Identifiers.containerSelector);
     const $existingIcon = $toolbarItemIcon.clone();
 
-    Icons.getIcon('spinner-circle-light', Icons.sizes.small).then((spinner: string): void => {
+    Icons.getIcon('spinner-circle-light', Icons.sizes.small).done((spinner: string): void => {
       $toolbarItemIcon.replaceWith(spinner);
     });
 
-    (new AjaxRequest(ajaxUrl)).post({}).then(
-      async (response: AjaxResponse): Promise<any> => {
-        const data = await response.resolve();
+    $.ajax({
+      url: ajaxUrl,
+      type: 'post',
+      cache: false,
+      success: (data: any): void => {
         if (data.success === true) {
           Notification.success(data.title, data.message);
         } else if (data.success === false) {
           Notification.error(data.title, data.message);
         }
       },
-      (): void => {
-        Notification.error(TYPO3.lang['flushCaches.error'], TYPO3.lang['flushCaches.error.description']);
+      error: (): void => {
+        Notification.error(
+          'An error occurred',
+          'An error occurred while clearing the cache. It is likely not all caches were cleared as expected.',
+        );
       },
-    ).finally((): void => {
-      $(Identifiers.toolbarIconSelector, Identifiers.containerSelector).replaceWith($existingIcon);
+      complete: (): void => {
+        $(Identifiers.toolbarIconSelector, Identifiers.containerSelector).replaceWith($existingIcon);
+      },
     });
   }
 }

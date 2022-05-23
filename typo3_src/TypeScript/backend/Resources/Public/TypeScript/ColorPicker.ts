@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,8 +11,8 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import 'jquery/minicolors';
+import * as $ from 'jquery';
+import 'TYPO3/CMS/Core/Contrib/jquery.minicolors';
 
 /**
  * Module: TYPO3/CMS/Backend/ColorPicker
@@ -58,7 +57,6 @@ class ColorPicker {
       $element.closest('.t3js-formengine-field-item')
         .find('input[type="hidden"]')
         .val($element.val());
-
       if ($element.val() === '') {
         $element.trigger('paste');
       }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 
 /**
  * Module: TYPO3/CMS/Backend/Storage/Persistent
@@ -116,7 +115,6 @@ class Persistent {
       data: {
         action: 'clear',
       },
-      method: 'post',
     });
     this.data = false;
   }
@@ -153,7 +151,7 @@ class Persistent {
       data: {
         action: 'getAll',
       },
-    }).done((data: any) => {
+    }).done((data) => {
       me.data = data;
     });
   }
@@ -175,7 +173,7 @@ class Persistent {
         value,
       },
       method: 'post',
-    }).done((data: any): any => {
+    }).done((data): any => {
       me.data = data;
     });
   }
@@ -184,7 +182,7 @@ class Persistent {
    * Helper function used to set a value which could have been a flat object key data["my.foo.bar"] to
    * data[my][foo][bar] is called recursively by itself
    *
-   * @param {Object} data the data to be used as base
+   * @param {Object} data the data to be uased as base
    * @param {String} keyParts the keyParts for the subtree
    * @returns {Object}
    */

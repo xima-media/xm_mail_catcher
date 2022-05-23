@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -17,11 +16,11 @@
  * this JS code does the drag+drop logic for the Layout module (Web => Page)
  * based on jQuery UI
  */
-import $ from 'jquery';
+import * as $ from 'jquery';
 import 'jquery-ui/droppable';
 import DataHandler = require('../AjaxDataHandler');
-import Icons = require('../Icons');
 import ResponseInterface from '../AjaxDataHandler/ResponseInterface';
+
 
 interface Parameters {
   cmd?: { tt_content: { [key: string]: any } };
@@ -30,10 +29,10 @@ interface Parameters {
 }
 
 interface DroppableEventUIParam {
-  draggable: JQuery;
-  helper: JQuery;
-  position: { top: number; left: number; };
-  offset: { top: number; left: number; };
+    draggable: JQuery;
+    helper: JQuery;
+    position: { top: number; left: number; };
+    offset: { top: number; left: number; };
 }
 
 class DragDrop {
@@ -61,10 +60,10 @@ class DragDrop {
       // addClasses: 'active-drag',
       revert: 'invalid',
       zIndex: 100,
-      start: (evt: JQueryEventObject): void => {
+      start: (evt: JQueryEventObject, ui: DroppableEventUIParam): void => {
         DragDrop.onDragStart($(evt.target));
       },
-      stop: (evt: JQueryEventObject): void => {
+      stop: (evt: JQueryEventObject, ui: DroppableEventUIParam): void => {
         DragDrop.onDragStop($(evt.target));
       },
     });
@@ -167,13 +166,13 @@ class DragDrop {
    * @param {Event} evt the event
    * @private
    */
-  public static onDrop($draggableElement: JQuery, $droppableElement: JQuery, evt: JQueryEventObject): void {
+  public static onDrop($draggableElement: number | JQuery, $droppableElement: JQuery, evt: JQueryEventObject): void {
     const newColumn = DragDrop.getColumnPositionForElement($droppableElement);
 
     $droppableElement.removeClass(DragDrop.dropPossibleHoverClass);
 
-    // send an AJAX request via the AjaxDataHandler
-    const contentElementUid: number = parseInt($draggableElement.data('uid'), 10);
+    // send an AJAX requst via the AjaxDataHandler
+    const contentElementUid: number = parseInt((<JQuery>$draggableElement).data('uid'), 10);
 
     if (typeof(contentElementUid) === 'number' && contentElementUid > 0) {
       let parameters: Parameters = {};
@@ -190,50 +189,37 @@ class DragDrop {
         targetPid = 0 - parseInt(targetFound, 10);
       }
 
-      // the dragged elements language uid
-      let language: number = parseInt($draggableElement.data('language-uid'), 10);
-      if (language !== -1) {
-        // new elements language must be the same as the column the element is dropped in if element is not -1
-        language = parseInt($droppableElement.closest('[data-language-uid]').data('language-uid'), 10);
-      }
-
+      const language = parseInt($droppableElement.closest('[data-language-uid]').data('language-uid'), 10);
       let colPos: number | boolean = 0;
       if (targetPid !== 0) {
         colPos = newColumn;
       }
-      const isCopyAction = (evt && (<JQueryInputEventObject>evt.originalEvent).ctrlKey || $droppableElement.hasClass('t3js-paste-copy'));
-      const datahandlerCommand = isCopyAction ? 'copy' : 'move';
-      parameters.cmd = {
-        tt_content: {
-          [contentElementUid]: {
-            [datahandlerCommand]: {
-              action: 'paste',
-              target: targetPid,
-              update: {
-                colPos: colPos,
-                sys_language_uid: language,
-              },
-            }
-          }
-        }
-      };
+      parameters.cmd = {tt_content: {}};
+      parameters.data = {tt_content: {}};
 
-      DragDrop.ajaxAction($droppableElement, $draggableElement, parameters, isCopyAction).then((): void => {
-        const $languageDescriber = $(`.t3-page-column-lang-name[data-language-uid="${language}"]`);
-        if ($languageDescriber.length === 0) {
-          return;
-        }
-
-        const newFlagIdentifier = $languageDescriber.data('flagIdentifier');
-        const newLanguageTitle = $languageDescriber.data('languageTitle');
-
-        $draggableElement.find('.t3js-language-title').text(newLanguageTitle);
-
-        Icons.getIcon(newFlagIdentifier, Icons.sizes.small).then((markup: string): void => {
-          const $flagIcon = $draggableElement.find('.t3js-flag');
-          $flagIcon.attr('title', newLanguageTitle).html(markup);
-        });
-      });
+      const copyAction = (evt && (<JQueryInputEventObject>evt.originalEvent).ctrlKey || $droppableElement.hasClass('t3js-paste-copy'));
+      if (copyAction) {
+        parameters.cmd.tt_content[contentElementUid] = {
+          copy: {
+            action: 'paste',
+            target: targetPid,
+            update: {
+              colPos: colPos,
+              sys_language_uid: language,
+            },
+          },
+        };
+        // TODO Make sure we actually have a JQuery object here, not only cast it
+        DragDrop.ajaxAction($droppableElement, <JQuery>$draggableElement, parameters, copyAction);
+      } else {
+        parameters.data.tt_content[contentElementUid] = {
+          colPos: colPos,
+          sys_language_uid: language,
+        };
+        parameters.cmd.tt_content[contentElementUid] = {move: targetPid};
+        // fire the request, and show a message if it has failed
+        DragDrop.ajaxAction($droppableElement, <JQuery>$draggableElement, parameters, copyAction);
+      }
     }
   }
 
@@ -243,13 +229,13 @@ class DragDrop {
    * @param {JQuery} $droppableElement
    * @param {JQuery} $draggableElement
    * @param {Parameters} parameters
-   * @param {boolean} isCopyAction
+   * @param {boolean} copyAction
    * @private
    */
-  public static ajaxAction($droppableElement: JQuery, $draggableElement: JQuery, parameters: Parameters, isCopyAction: boolean): Promise<any> {
-    return DataHandler.process(parameters).then((result: ResponseInterface): void => {
+  public static ajaxAction($droppableElement: JQuery, $draggableElement: JQuery, parameters: Parameters, copyAction: boolean): void {
+    DataHandler.process(parameters).done(function(result: ResponseInterface): void {
       if (result.hasErrors) {
-        throw result.messages;
+        return;
       }
 
       // insert draggable on the new position
@@ -260,8 +246,8 @@ class DragDrop {
         $draggableElement.detach().css({top: 0, left: 0})
           .insertAfter($droppableElement.closest(DragDrop.contentIdentifier));
       }
-      if (isCopyAction) {
-        self.location.reload();
+      if (copyAction) {
+        self.location.reload(true);
       }
     });
   }

@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -13,7 +12,7 @@
  */
 
 import 'bootstrap';
-import $ from 'jquery';
+import * as $ from 'jquery';
 import FormEngine = require('TYPO3/CMS/Backend/FormEngine');
 
 /**
@@ -130,9 +129,8 @@ class FormEngineReview {
       // bootstrap has no official API to update the content of a popover w/o destroying it
       const $popover: any = $toggleButton.data('bs.popover');
       if ($popover) {
-        $popover.options.html = true;
         $popover.options.content = $list.wrapAll('<div>').parent().html();
-        $popover.setContent($popover.$tip);
+        $popover.setContent();
         $popover.$tip.addClass($popover.options.placement);
       }
     } else {

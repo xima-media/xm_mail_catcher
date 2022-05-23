@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,15 +11,12 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import {MessageUtility} from 'TYPO3/CMS/Backend/Utility/MessageUtility';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
 import {KeyTypesEnum} from './Enum/KeyTypes';
+import * as $ from 'jquery';
 import NProgress = require('nprogress');
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import SecurityUtility = require('TYPO3/CMS/Core/SecurityUtility');
 import Modal = require('./Modal');
 import Severity = require('./Severity');
+import SecurityUtility = require('TYPO3/CMS/Core/SecurityUtility');
 
 interface Response {
   file?: number;
@@ -57,37 +53,34 @@ class OnlineMedia {
     const irreObjectUid = $trigger.data('file-irre-object');
 
     NProgress.start();
-    new AjaxRequest(TYPO3.settings.ajaxUrls.online_media_create).post({
-      url: url,
-      targetFolder: target,
-      allowed: allowed,
-    }).then(async (response: AjaxResponse): Promise<void> => {
-      const data: Response = await response.resolve();
-      if (data.file) {
-        const message = {
-          actionName: 'typo3:foreignRelation:insert',
-          objectGroup: irreObjectUid,
-          table: 'sys_file',
-          uid: data.file,
-        };
-        MessageUtility.send(message);
-      } else {
-        const $confirm = Modal.confirm(
-          'ERROR',
-          data.error,
-          Severity.error,
-          [{
-            text: TYPO3.lang['button.ok'] || 'OK',
-            btnClass: 'btn-' + Severity.getCssClass(Severity.error),
-            name: 'ok',
-            active: true,
-          }],
-        ).on('confirm.button.ok', (): void => {
-          $confirm.modal('hide');
-        });
-      }
-      NProgress.done();
-    });
+    $.post(
+      TYPO3.settings.ajaxUrls.online_media_create,
+      {
+        url: url,
+        targetFolder: target,
+        allowed: allowed,
+      },
+      (data: Response): void => {
+        if (data.file) {
+          window.inline.delayedImportElement(irreObjectUid, 'sys_file', data.file, 'file');
+        } else {
+          const $confirm = Modal.confirm(
+            'ERROR',
+            data.error,
+            Severity.error,
+            [{
+              text: TYPO3.lang['button.ok'] || 'OK',
+              btnClass: 'btn-' + Severity.getCssClass(Severity.error),
+              name: 'ok',
+              active: true,
+            }],
+          ).on('confirm.button.ok', (): void => {
+            $confirm.modal('hide');
+          });
+        }
+        NProgress.done();
+      },
+    );
   }
 
   /**
@@ -102,16 +95,16 @@ class OnlineMedia {
     const allowedHelpText = $currentTarget.data('online-media-allowed-help-text') || 'Allow to embed from sources:';
 
     const $markup = $('<div>')
-      .attr('class', 'form-control-wrap')
-      .append([
-        $('<input>')
-          .attr('type', 'text')
-          .attr('class', 'form-control online-media-url')
-          .attr('placeholder', placeholder),
-        $('<div>')
-          .attr('class', 'help-block')
-          .html(this.securityUtility.encodeHtml(allowedHelpText, false) + '<br>' + allowedExtMarkup.join(' ')),
-      ]);
+        .attr('class', 'form-control-wrap')
+        .append([
+          $('<input>')
+            .attr('type', 'text')
+            .attr('class', 'form-control online-media-url')
+            .attr('placeholder', placeholder),
+          $('<div>')
+            .attr('class', 'help-block')
+            .html(this.securityUtility.encodeHtml(allowedHelpText, false) + '<br>' + allowedExtMarkup.join(' ')),
+        ]);
     const $modal = Modal.show(
       $currentTarget.attr('title'),
       $markup,

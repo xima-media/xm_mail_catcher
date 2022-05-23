@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,27 +11,23 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
 import {ScaffoldIdentifierEnum} from '../Enum/Viewport/ScaffoldIdentifier';
-import Toolbar = require('./Toolbar');
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
+import * as $ from 'jquery';
 
 class Topbar {
   public static readonly topbarSelector: string = ScaffoldIdentifierEnum.header;
-  public readonly Toolbar: Toolbar;
 
-  public constructor() {
-    this.Toolbar = new Toolbar();
-  }
+  public static Toolbar: { [key: string]: Function } = {
+    registerEvent: (callback: (eventHandler: JQueryEventObject) => any): void => {
+      $(callback);
+      $(Topbar.topbarSelector).on('t3-topbar-update', callback);
+    },
+  };
 
-  public refresh(): void {
-    new AjaxRequest(TYPO3.settings.ajaxUrls.topbar).get().then(async (response: AjaxResponse): Promise<void> => {
-      const data = await response.resolve();
-      const topbar = document.querySelector(Topbar.topbarSelector);
-      if (topbar !== null) {
-        topbar.innerHTML = data.topbar;
-        topbar.dispatchEvent(new Event('t3-topbar-update'));
-      }
+  public static refresh(): void {
+    $.ajax(TYPO3.settings.ajaxUrls.topbar).done((data: { [key: string]: string }): void => {
+      $(Topbar.topbarSelector).html(data.topbar);
+      $(Topbar.topbarSelector).trigger('t3-topbar-update');
     });
   }
 }

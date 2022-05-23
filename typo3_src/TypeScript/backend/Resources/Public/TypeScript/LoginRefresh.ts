@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,16 +11,20 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import Notification = require('TYPO3/CMS/Backend/Notification');
+import * as $ from 'jquery';
+import Typo3Notification = require('TYPO3/CMS/Backend/Notification');
+import Modal = require('TYPO3/CMS/Backend/Modal');
+import Severity = require('TYPO3/CMS/Backend/Severity');
+import Client = require('TYPO3/CMS/Backend/Storage/Client');
 
 enum MarkupIdentifiers {
   loginrefresh = 't3js-modal-loginrefresh',
   lockedModal = 't3js-modal-backendlocked',
   loginFormModal = 't3js-modal-backendloginform',
 }
+
+// hack is required, because the Notification definition is wrong
+declare var Notification: any;
 
 /**
  * Module: TYPO3/CMS/Backend/LoginRefresh
@@ -33,6 +36,7 @@ class LoginRefresh {
       backdrop: 'static',
     },
   };
+  private webNotification: Notification = null;
   private intervalTime: number = 60;
   private intervalId: number = null;
   private backendIsLocked: boolean = false;
@@ -50,7 +54,38 @@ class LoginRefresh {
     this.initializeTimeoutModal();
     this.initializeBackendLockedModal();
     this.initializeLoginForm();
+
     this.startTask();
+
+    const askForNotifications = !(Client.isset('notifications.asked') && Client.get('notifications.asked') === 'yes');
+    const isDefaultNotificationLevel = typeof Notification !== 'undefined' && Notification.permission === 'default';
+    if (askForNotifications
+      && document.location.protocol === 'https:'
+      && isDefaultNotificationLevel
+    ) {
+      Modal.confirm(
+        TYPO3.lang['notification.request.title'],
+        TYPO3.lang['notification.request.description'],
+        Severity.info,
+        [{
+          text: TYPO3.lang['button.yes'] || 'Yes',
+          btnClass: 'btn-' + Severity.getCssClass(Severity.info),
+          name: 'ok',
+          active: true,
+        }, {
+          text: TYPO3.lang['button.no'] || 'No',
+          btnClass: 'btn-' + Severity.getCssClass(Severity.notice),
+          name: 'cancel',
+        }],
+      ).on('confirm.button.ok', (): void => {
+        Notification.requestPermission();
+        Modal.dismiss();
+      }).on('confirm.button.cancel', (): void => {
+        Modal.dismiss();
+      }).on('hide.bs.modal', (): void => {
+        Client.set('notifications.asked', 'yes');
+      });
+    }
   }
 
   /**
@@ -106,8 +141,18 @@ class LoginRefresh {
   public showTimeoutModal(): void {
     this.isTimingOut = true;
     this.$timeoutModal.modal(this.options.modalConfig);
-    this.$timeoutModal.modal('show');
     this.fillProgressbar(this.$timeoutModal);
+
+    if (document.location.protocol === 'https:' && typeof Notification !== 'undefined'
+      && Notification.permission === 'granted' && document.hidden) {
+      this.webNotification = new Notification(TYPO3.lang['mess.login_about_to_expire_title'], {
+        body: TYPO3.lang['mess.login_about_to_expire'],
+        icon: '/typo3/sysext/backend/Resources/Public/Images/Logo.png',
+      });
+      this.webNotification.onclick = () => {
+        window.focus();
+      };
+    }
   }
 
   /**
@@ -116,6 +161,10 @@ class LoginRefresh {
   public hideTimeoutModal(): void {
     this.isTimingOut = false;
     this.$timeoutModal.modal('hide');
+
+    if (typeof Notification !== 'undefined' && this.webNotification !== null) {
+      this.webNotification.close();
+    }
   }
 
   /**
@@ -123,7 +172,6 @@ class LoginRefresh {
    */
   public showBackendLockedModal(): void {
     this.$backendLockedModal.modal(this.options.modalConfig);
-    this.$backendLockedModal.modal('show');
   }
 
   /**
@@ -138,13 +186,14 @@ class LoginRefresh {
    */
   public showLoginForm(): void {
     // log off for sure
-    new AjaxRequest(TYPO3.settings.ajaxUrls.logout).get().then((): void => {
-      if (TYPO3.configuration.showRefreshLoginPopup) {
-        this.showLoginPopup();
-      } else {
-        this.$loginForm.modal(this.options.modalConfig);
-        this.$loginForm.modal('show');
-      }
+    $.ajax({
+      url: TYPO3.settings.ajaxUrls.logout,
+      method: 'GET',
+      success: () => {
+        TYPO3.configuration.showRefreshLoginPopup
+          ? this.showLoginPopup()
+          : this.$loginForm.modal(this.options.modalConfig);
+      },
     });
   }
 
@@ -194,7 +243,7 @@ class LoginRefresh {
       $('<p />').text(TYPO3.lang['mess.login_about_to_expire']),
       $('<div />', {class: 'progress'}).append(
         $('<div />', {
-          class: 'progress-bar progress-bar-warning progress-bar-striped progress-bar-animated',
+          class: 'progress-bar progress-bar-warning progress-bar-striped active',
           role: 'progressbar',
           'aria-valuemin': '0',
           'aria-valuemax': '100',
@@ -214,8 +263,12 @@ class LoginRefresh {
         class: 'btn btn-primary t3js-active',
         'data-action': 'refreshSession',
       }).text(TYPO3.lang['mess.refresh_login_refresh_button']).on('click', () => {
-        new AjaxRequest(TYPO3.settings.ajaxUrls.login_timedout).get().then((): void => {
-          this.hideTimeoutModal();
+        $.ajax({
+          url: TYPO3.settings.ajaxUrls.login_timedout,
+          method: 'GET',
+          success: () => {
+            this.hideTimeoutModal();
+          },
         });
       }),
     );
@@ -244,10 +297,6 @@ class LoginRefresh {
         method: 'POST',
         action: TYPO3.settings.ajaxUrls.login,
       }).append(
-        $('<div />').append(
-          $('<input />', {type: 'text', name: 'username', class: 'd-none', value: TYPO3.configuration.username}),
-          $('<input />', {type: 'hidden', name: 'userident', id: 't3-loginrefresh-userident'})
-        ),
         $('<div />', {class: 'form-group'}).append(
           $('<input />', {
             type: 'password',
@@ -255,13 +304,13 @@ class LoginRefresh {
             autofocus: 'autofocus',
             class: 'form-control',
             placeholder: TYPO3.lang['mess.refresh_login_password'],
+            'data-rsa-encryption': 't3-loginrefres-userident',
           }),
         ),
+        $('<input />', {type: 'hidden', name: 'username', value: TYPO3.configuration.username}),
+        $('<input />', {type: 'hidden', name: 'userident', id: 't3-loginrefres-userident'}),
       ),
     );
-    // Added to disable DOM warnings in browser consoles
-    this.$loginForm.find('.modal-body .d-none').attr('autocomplete', 'username');
-    this.$loginForm.find('.modal-body .form-control').attr('autocomplete', 'current-password');
     this.$loginForm.find('.modal-footer').append(
       $('<a />', {
         href: this.logoutUrl,
@@ -270,11 +319,16 @@ class LoginRefresh {
       $('<button />', {type: 'button', class: 'btn btn-primary', 'data-action': 'refreshSession'})
         .text(TYPO3.lang['mess.refresh_login_button'])
         .on('click', () => {
-          this.$loginForm.find('form').trigger('submit');
+          this.$loginForm.find('form').submit();
         }),
     );
     this.registerDefaultModalEvents(this.$loginForm).on('submit', this.submitForm);
     $('body').append(this.$loginForm);
+    if (require.specified('TYPO3/CMS/Rsaauth/RsaEncryptionModule')) {
+      require(['TYPO3/CMS/Rsaauth/RsaEncryptionModule'], function(RsaEncryption: any): void {
+        RsaEncryption.registerForm($('#beLoginRefresh').get(0));
+      });
+    }
   }
 
   /**
@@ -351,7 +405,7 @@ class LoginRefresh {
     const passwordFieldValue = $passwordField.val();
 
     if (passwordFieldValue === '' && $useridentField.val() === '') {
-      Notification.error(TYPO3.lang['mess.refresh_login_failed'], TYPO3.lang['mess.refresh_login_emptyPassword']);
+      Typo3Notification.error(TYPO3.lang['mess.refresh_login_failed'], TYPO3.lang['mess.refresh_login_emptyPassword']);
       $passwordField.focus();
       return;
     }
@@ -364,18 +418,22 @@ class LoginRefresh {
     const postData: any = {
       login_status: 'login',
     };
-    $.each($form.serializeArray(), function (i: number, field: any): void {
+    $.each($form.serializeArray(), function(i: number, field: any): void {
       postData[field.name] = field.value;
     });
-    new AjaxRequest($form.attr('action')).post(postData).then(async (response: AjaxResponse): Promise<void> => {
-      const data = await response.resolve();
-      if (data.login.success) {
-        // User is logged in
-        this.hideLoginForm();
-      } else {
-        Notification.error(TYPO3.lang['mess.refresh_login_failed'], TYPO3.lang['mess.refresh_login_failed_message']);
-        $passwordField.focus();
-      }
+    $.ajax({
+      url: $form.attr('action'),
+      method: 'POST',
+      data: postData,
+      success: (response) => {
+        if (response.login.success) {
+          // User is logged in
+          this.hideLoginForm();
+        } else {
+          Typo3Notification.error(TYPO3.lang['mess.refresh_login_failed'], TYPO3.lang['mess.refresh_login_failed_message']);
+          $passwordField.focus();
+        }
+      },
     });
   }
 
@@ -410,9 +468,8 @@ class LoginRefresh {
    * and opens a dialog.
    */
   protected checkActiveSession = (): void => {
-    new AjaxRequest(TYPO3.settings.ajaxUrls.login_timedout).get().then(async (response: AjaxResponse): Promise<void> => {
-      const data = await response.resolve();
-      if (data.login.locked) {
+    $.getJSON(TYPO3.settings.ajaxUrls.login_timedout, [], (response) => {
+      if (response.login.locked) {
         if (!this.backendIsLocked) {
           this.backendIsLocked = true;
           this.showBackendLockedModal();
@@ -425,8 +482,8 @@ class LoginRefresh {
       }
 
       if (!this.backendIsLocked) {
-        if (data.login.timed_out || data.login.will_time_out) {
-          data.login.timed_out
+        if (response.login.timed_out || response.login.will_time_out) {
+          response.login.timed_out
             ? this.showLoginForm()
             : this.showTimeoutModal();
         }
@@ -451,7 +508,7 @@ try {
   if (top && top.TYPO3 && top.TYPO3.LoginRefresh) {
     loginRefreshObject = top.TYPO3.LoginRefresh;
   }
-} catch {
+} catch (e) {
   // This only happens if the opener, parent or top is some other url (eg a local file)
   // which loaded the current window. Then the browser's cross domain policy jumps in
   // and raises an exception.

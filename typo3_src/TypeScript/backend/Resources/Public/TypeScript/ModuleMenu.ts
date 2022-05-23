@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,26 +11,29 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
+import {NavigationComponentInterface} from './Viewport/NavigationComponentInterface';
 import {ScaffoldIdentifierEnum} from './Enum/Viewport/ScaffoldIdentifier';
-import {getRecordFromName, Module, ModuleState} from './Module';
-import $ from 'jquery';
+import * as $ from 'jquery';
 import PersistentStorage = require('./Storage/Persistent');
 import Viewport = require('./Viewport');
 import ClientRequest = require('./Event/ClientRequest');
 import TriggerRequest = require('./Event/TriggerRequest');
 import InteractionRequest = require('./Event/InteractionRequest');
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
-import RegularEvent = require('TYPO3/CMS/Core/Event/RegularEvent');
-import {ModuleStateStorage} from './Storage/ModuleStateStorage';
+
+interface Module {
+  name: string;
+  navigationComponentId: string;
+  navigationFrameScript: string;
+  navigationFrameScriptParam: string;
+  link: string;
+}
 
 /**
  * Class to render the module menu and handle the BE navigation
- * Module: TYPO3/CMS/Backend/ModuleMenu
  */
 class ModuleMenu {
   private loadedModule: string = null;
-  private spaceKeyPressedOnCollapsible: boolean = false;
+  private loadedNavigationComponentId: string = '';
 
   /**
    * Fetches all module menu elements in the local storage that should be collapsed
@@ -86,10 +88,10 @@ class ModuleMenu {
     } else {
       section = moduleData.name.split('_')[0];
     }
-    const moduleStateStorage = ModuleStateStorage.current(section);
-    if (moduleStateStorage.selection) {
-      params = 'id=' + moduleStateStorage.selection + '&' + params;
+    if (top.fsMod.recentIds[section]) {
+      params = 'id=' + top.fsMod.recentIds[section] + '&' + params;
     }
+
     return params;
   }
 
@@ -97,6 +99,8 @@ class ModuleMenu {
    * @param {boolean} collapse
    */
   private static toggleMenu(collapse?: boolean): void {
+    Viewport.NavigationContainer.cleanup();
+
     const $mainContainer = $(ScaffoldIdentifierEnum.scaffold);
     const expandedClass = 'scaffold-modulemenu-expanded';
 
@@ -117,81 +121,33 @@ class ModuleMenu {
         collapsed: collapse,
       },
     );
+
+    Viewport.doLayout();
   }
 
   /**
-   * @param {HTMLButtonElement} button
+   * Gets the module properties from module menu markup (data attributes)
+   *
+   * @param {string} name
+   * @returns {Module}
    */
-  private static toggleModuleGroup(button: HTMLElement): void {
-    const moduleGroup = button.closest('.modulemenu-group');
-    const moduleGroupContainer = moduleGroup.querySelector('.modulemenu-group-container');
-    const ariaExpanded = button.attributes.getNamedItem('aria-expanded').value === 'true';
-
-    if (ariaExpanded) {
-      ModuleMenu.addCollapsedMainMenuItem(button.id);
-    } else {
-      ModuleMenu.removeCollapseMainMenuItem(button.id);
-    }
-
-    moduleGroup.classList.toggle('modulemenu-group-collapsed', ariaExpanded);
-    moduleGroup.classList.toggle('modulemenu-group-expanded', !ariaExpanded);
-
-    button.attributes.getNamedItem('aria-expanded').value = (!ariaExpanded).toString();
-
-    $(moduleGroupContainer).stop().slideToggle();
+  private static getRecordFromName(name: string): Module {
+    const $subModuleElement = $('#' + name);
+    return {
+      name: name,
+      navigationComponentId: $subModuleElement.data('navigationcomponentid'),
+      navigationFrameScript: $subModuleElement.data('navigationframescript'),
+      navigationFrameScriptParam: $subModuleElement.data('navigationframescriptparameters'),
+      link: $subModuleElement.find('a').data('link'),
+    };
   }
 
   /**
    * @param {string} module
    */
   private static highlightModuleMenuItem(module: string): void {
-    $('.modulemenu-action.modulemenu-action-active')
-      .removeClass('modulemenu-action-active')
-      .removeAttr('aria-current');
-    $('#' + module)
-      .addClass('modulemenu-action-active')
-      .attr('aria-current', 'location');
-  }
-
-  private static getPreviousItem(item: HTMLButtonElement): HTMLButtonElement {
-    let previousParent = item.parentElement.previousElementSibling; // previous <li>
-    if (previousParent === null) {
-      return ModuleMenu.getLastItem(item);
-    }
-    return previousParent.firstElementChild as HTMLButtonElement; // the <button>
-  }
-
-  private static getNextItem(item: HTMLButtonElement): HTMLButtonElement {
-    let nextParent = item.parentElement.nextElementSibling; // next <li>
-    if (nextParent === null) {
-      return ModuleMenu.getFirstItem(item);
-    }
-    return nextParent.firstElementChild as HTMLButtonElement; // the <button>
-  }
-
-  private static getFirstItem(item: HTMLButtonElement): HTMLButtonElement {
-    // from <button> up to <ul> and down to <button> of first <li>
-    return item.parentElement.parentElement.firstElementChild.firstElementChild as HTMLButtonElement;
-  }
-
-  private static getLastItem(item: HTMLButtonElement): HTMLButtonElement {
-    // from <button> up to <ul> and down to <button> of first <li>
-    return item.parentElement.parentElement.lastElementChild.firstElementChild as HTMLButtonElement;
-  }
-
-  private static getParentItem(item: HTMLButtonElement): HTMLButtonElement {
-    // from <button> up to <ul> and the <li> above and down down its <button>
-    return item.parentElement.parentElement.parentElement.firstElementChild as HTMLButtonElement;
-  }
-
-  private static getFirstChildItem(item: HTMLButtonElement): HTMLButtonElement {
-    // the first <li> of the <ul> following the <button>, then down down its <button>
-    return item.nextElementSibling.firstElementChild.firstElementChild as HTMLButtonElement;
-  }
-
-  private static getLastChildItem(item: HTMLButtonElement): HTMLButtonElement {
-    // the first <li> of the <ul> following the <button>, then down down its <button>
-    return item.nextElementSibling.lastElementChild.firstElementChild as HTMLButtonElement;
+    $('.modulemenu-item.active').removeClass('active');
+    $('#' + module).addClass('active');
   }
 
   constructor() {
@@ -202,13 +158,12 @@ class ModuleMenu {
    * Refresh the HTML by fetching the menu again
    */
   public refreshMenu(): void {
-    new AjaxRequest(TYPO3.settings.ajaxUrls.modulemenu).get().then(async (response: AjaxResponse): Promise<void> => {
-      const result = await response.resolve();
-      document.getElementById('modulemenu').outerHTML = result.menu;
-      this.initializeModuleMenuEvents();
+    $.ajax(TYPO3.settings.ajaxUrls.modulemenu).done((result: { [key: string]: string }): void => {
+      $('#menu').replaceWith(result.menu);
       if (top.currentModuleLoaded) {
         ModuleMenu.highlightModuleMenuItem(top.currentModuleLoaded);
       }
+      Viewport.doLayout();
     });
   }
 
@@ -227,12 +182,12 @@ class ModuleMenu {
    *
    * @param {string} name
    * @param {string} params
-   * @param {Event} event
+   * @param {JQueryEventObject} event
    * @returns {JQueryDeferred<TriggerRequest>}
    */
-  public showModule(name: string, params?: string, event: Event = null): JQueryDeferred<TriggerRequest> {
+  public showModule(name: string, params?: string, event?: JQueryEventObject): JQueryDeferred<TriggerRequest> {
     params = params || '';
-    const moduleData = getRecordFromName(name);
+    const moduleData = ModuleMenu.getRecordFromName(name);
     return this.loadModuleComponents(
       moduleData,
       params,
@@ -241,211 +196,74 @@ class ModuleMenu {
   }
 
   private initialize(): void {
-    if (document.querySelector('.t3js-modulemenu') === null) {
-      return;
-    }
-
+    const me = this;
     let deferred = $.Deferred();
     deferred.resolve();
 
+    // load the start module
+    if (top.startInModule && top.startInModule[0] && $('#' + top.startInModule[0]).length > 0) {
+      deferred = this.showModule(
+        top.startInModule[0],
+        top.startInModule[1],
+      );
+    } else {
+      // fetch first module
+      const $firstModule = $('.t3js-mainmodule:first');
+      if ($firstModule.attr('id')) {
+        deferred = this.showModule(
+          $firstModule.attr('id'),
+        );
+      }
+      // else case: the main module has no entries, this is probably a backend
+      // user with very little access rights, maybe only the logout button and
+      // a user settings module in topbar.
+    }
+
     deferred.then((): void => {
-      this.initializeModuleMenuEvents();
-      Viewport.Topbar.Toolbar.registerEvent(() => {
-        // Only initialize top bar events when top bar exists.
-        // E.g. install tool has no top bar
-        if(document.querySelector('.t3js-scaffold-toolbar')) {
-          this.initializeTopBarEvents()
-        }
-      });
+      me.initializeEvents();
     });
   }
 
-  /**
-   * Implement the complete keyboard navigation of the menus
-   */
-  private keyboardNavigation(e: KeyboardEvent, target: HTMLButtonElement, trackSpaceKey: boolean = false): void {
-    const level = target.parentElement.attributes.getNamedItem('data-level').value;
-    let item = null;
-    if (trackSpaceKey) {
-      this.spaceKeyPressedOnCollapsible = false; // only for tracking t3js-modulemenu!!!
-    }
+  private initializeEvents(): void {
+    $(document).on('click', '.modulemenu-group .modulemenu-group-header', (e: JQueryEventObject): void => {
+      const $group = $(e.currentTarget).parent('.modulemenu-group');
+      const $groupContainer = $group.find('.modulemenu-group-container');
 
-    switch (e.code) {
-      case 'ArrowUp':
-        item = ModuleMenu.getPreviousItem(target);
-        break;
-      case 'ArrowDown':
-        item = ModuleMenu.getNextItem(target);
-        break;
-      case 'ArrowLeft':
-        if (level === '1' && target.classList.contains('t3js-modulemenu-collapsible')) {
-          if (target.attributes.getNamedItem('aria-expanded').value === 'false') {
-            ModuleMenu.toggleModuleGroup(target);
-          }
-          item = ModuleMenu.getLastChildItem(target);
-        } else if (level === '2') {
-          item = ModuleMenu.getPreviousItem(ModuleMenu.getParentItem(target));
-        }
-        break;
-      case 'ArrowRight':
-        if (level === '1' && target.classList.contains('t3js-modulemenu-collapsible')) {
-          if (target.attributes.getNamedItem('aria-expanded').value === 'false') {
-            ModuleMenu.toggleModuleGroup(target);
-          }
-          item = ModuleMenu.getFirstChildItem(target);
-        } else if (level === '2') {
-          item = ModuleMenu.getNextItem(ModuleMenu.getParentItem(target));
-        }
-        break;
-      case 'Home':
-        if (e.ctrlKey && level === '2') {
-          item = ModuleMenu.getFirstItem(ModuleMenu.getParentItem(target));
-        } else {
-          item = ModuleMenu.getFirstItem(target);
-        }
-        break;
-      case 'End':
-        if (e.ctrlKey && level === '2') {
-          item = ModuleMenu.getLastItem(ModuleMenu.getParentItem(target));
-        } else {
-          item = ModuleMenu.getLastItem(target);
-        }
-        break;
-      case 'Space':
-      case 'Enter':
-        if (level === '1' && target.classList.contains('t3js-modulemenu-collapsible')) {
-          if (e.code === 'Enter') {
-            e.preventDefault(); // we do not want the click handler to run, need to prevent default immediately
-          }
-          ModuleMenu.toggleModuleGroup(target);
-          if (target.attributes.getNamedItem('aria-expanded').value === 'true') {
-            item = ModuleMenu.getFirstChildItem(target);
-            if (e.code === 'Space') {
-              this.spaceKeyPressedOnCollapsible = true; // focus shifts, so keyup will be sent to submodule
-            }
-          }
-        }
-        break;
-      case 'Esc':
-      case 'Escape':
-        if (level === '2') {
-          item = ModuleMenu.getParentItem(target);
-          ModuleMenu.toggleModuleGroup(item);
-        }
-        break;
-      default:
-        item = null;
-    }
-    if (item !== null) {
-      if (!e.defaultPrevented) {
-        e.preventDefault();
+      Viewport.NavigationContainer.cleanup();
+      if ($group.hasClass('expanded')) {
+        ModuleMenu.addCollapsedMainMenuItem($group.attr('id'));
+        $group.addClass('collapsed').removeClass('expanded');
+        $groupContainer.stop().slideUp().promise().done((): void => {
+          Viewport.doLayout();
+        });
+      } else {
+        ModuleMenu.removeCollapseMainMenuItem($group.attr('id'));
+        $group.addClass('expanded').removeClass('collapsed');
+        $groupContainer.stop().slideDown().promise().done((): void => {
+          Viewport.doLayout();
+        });
       }
-      item.focus();
-    }
-  }
-
-  private initializeModuleMenuEvents(): void {
-    const moduleMenu = document.querySelector('.t3js-modulemenu');
-
-    const preventSpace = function(this: ModuleMenu, e: KeyboardEvent): void {
-      if (e.code === 'Space') {
-        if (this.spaceKeyPressedOnCollapsible) { // keydown has been sent to module
-          e.preventDefault(); // we do not want the click handler to run
-          this.spaceKeyPressedOnCollapsible = false;
-        }
-      }
-    }.bind(this);
-
-    new RegularEvent('keydown', this.keyboardNavigation).delegateTo(moduleMenu, '.t3js-modulemenu-action');
-
-    moduleMenu.querySelectorAll('[data-level="2"] .t3js-modulemenu-action[data-link]').forEach( (item: Element): void => {
-      item.addEventListener('keyup', preventSpace);
     });
 
-    new RegularEvent('keyup', (e: KeyboardEvent, target: HTMLButtonElement): void => {
-      if (e.code === 'Space') {
-        e.preventDefault(); // we do not want the click handler to run
-      }
-    }).delegateTo(moduleMenu, '.t3js-modulemenu-collapsible');
-
-    new RegularEvent('click', (e: Event, target: HTMLElement): void => {
-      e.preventDefault();
-      this.showModule(target.id, '', e);
-    }).delegateTo(moduleMenu, '.t3js-modulemenu-action[data-link]');
-
-
-    new RegularEvent('click', (e: Event, target: HTMLElement): void => {
-      e.preventDefault();
-      ModuleMenu.toggleModuleGroup(target);
-    }).delegateTo(moduleMenu, '.t3js-modulemenu-collapsible');
-  }
-
-  /**
-   * Initialize events for label toggle and help menu
-   */
-  private initializeTopBarEvents(): void {
-    const toolbar = document.querySelector('.t3js-scaffold-toolbar');
-
-    new RegularEvent('keydown', (e: KeyboardEvent, target: HTMLButtonElement) => {
-      this.keyboardNavigation(e, target);
-    }).delegateTo(toolbar, '.t3js-modulemenu-action');
-
-    new RegularEvent('click', (e: Event, target: HTMLElement): void => {
-      e.preventDefault();
-      this.showModule(target.id, '', e);
-    }).delegateTo(toolbar, '.t3js-modulemenu-action[data-link]');
-
-    new RegularEvent('click', (e: Event): void => {
-      e.preventDefault();
-      ModuleMenu.toggleMenu();
-    }).bindTo(document.querySelector('.t3js-topbar-button-modulemenu'));
-
-    new RegularEvent('click', (e: Event): void => {
-      e.preventDefault();
-      ModuleMenu.toggleMenu(true);
-    }).bindTo(document.querySelector('.t3js-scaffold-content-overlay'));
-
-    const moduleLoadListener = (evt: CustomEvent<ModuleState>) => {
-      const moduleName = evt.detail.module;
-      if (!moduleName || this.loadedModule === moduleName) {
-        return;
-      }
-      ModuleMenu.highlightModuleMenuItem(moduleName);
-      $('#' + moduleName).focus();
-      this.loadedModule = moduleName;
-
-      const moduleData = getRecordFromName(moduleName);
-
-      // compatibility
-      if (moduleData.link) {
-        top.currentSubScript = moduleData.link;
-      }
-      top.currentModuleLoaded = moduleName;
-
-      // Synchronisze navigation container if module is a standalone module (linked via ModuleMenu).
-      // Do not hide navigation for intermediate modules like record_edit, which may be used
-      // with our without a navigation component, depending on the context.
-      if (moduleData.link) {
-        if (moduleData.navigationComponentId) {
-          Viewport.NavigationContainer.showComponent(moduleData.navigationComponentId);
-        } else if (moduleData.navigationFrameScript) {
-          Viewport.NavigationContainer.show('typo3-navigationIframe');
-          const interactionRequest = new ClientRequest('typo3.showModule', event);
-          this.openInNavFrame(
-            moduleData.navigationFrameScript,
-            moduleData.navigationFrameScriptParam,
-            new TriggerRequest(
-              'typo3.loadModuleComponents',
-              new ClientRequest('typo3.showModule', null)
-            ),
-          );
-        } else {
-          Viewport.NavigationContainer.hide(false);
-        }
-      }
-    };
-    document.addEventListener('typo3-module-load', moduleLoadListener);
-    document.addEventListener('typo3-module-loaded', moduleLoadListener);
+    // register clicking on sub modules
+    $(document).on('click', '.modulemenu-item,.t3-menuitem-submodule', (evt: JQueryEventObject): void => {
+      evt.preventDefault();
+      this.showModule($(evt.currentTarget).attr('id'), '', evt);
+    });
+    $(document).on('click', '.t3js-topbar-button-modulemenu', (evt: JQueryEventObject): void => {
+        evt.preventDefault();
+        ModuleMenu.toggleMenu();
+      },
+    );
+    $(document).on('click', '.t3js-scaffold-content-overlay', (evt: JQueryEventObject): void => {
+        evt.preventDefault();
+        ModuleMenu.toggleMenu(true);
+      },
+    );
+    $(document).on('click', '.t3js-topbar-button-navigationcomponent', (evt: JQueryEventObject): void => {
+      evt.preventDefault();
+      Viewport.NavigationContainer.toggle();
+    });
   }
 
   /**
@@ -470,7 +288,7 @@ class ModuleMenu {
       $.proxy(
         (): void => {
           if (moduleData.navigationComponentId) {
-            Viewport.NavigationContainer.showComponent(moduleData.navigationComponentId);
+            this.loadNavigationComponent(moduleData.navigationComponentId);
           } else if (moduleData.navigationFrameScript) {
             Viewport.NavigationContainer.show('typo3-navigationIframe');
             this.openInNavFrame(
@@ -482,14 +300,13 @@ class ModuleMenu {
               ),
             );
           } else {
-            Viewport.NavigationContainer.hide(true);
+            Viewport.NavigationContainer.hide();
           }
 
           ModuleMenu.highlightModuleMenuItem(moduleName);
           this.loadedModule = moduleName;
           params = ModuleMenu.includeId(moduleData, params);
-          this.openInContentContainer(
-            moduleName,
+          this.openInContentFrame(
             moduleData.link,
             params,
             new TriggerRequest(
@@ -501,6 +318,8 @@ class ModuleMenu {
           // compatibility
           top.currentSubScript = moduleData.link;
           top.currentModuleLoaded = moduleName;
+
+          Viewport.doLayout();
         },
         this,
       ),
@@ -510,13 +329,45 @@ class ModuleMenu {
   }
 
   /**
+   * Renders registered (non-iframe) navigation component e.g. a page tree
+   *
+   * @param {string} navigationComponentId
+   */
+  private loadNavigationComponent(navigationComponentId: string): void {
+    const me = this;
+
+    Viewport.NavigationContainer.show(navigationComponentId);
+    if (navigationComponentId === this.loadedNavigationComponentId) {
+      return;
+    }
+    const componentCssName = navigationComponentId.replace(/[/]/g, '_');
+    if (this.loadedNavigationComponentId !== '') {
+      $('#navigationComponent-' + this.loadedNavigationComponentId.replace(/[/]/g, '_')).hide();
+    }
+    if ($('.t3js-scaffold-content-navigation [data-component="' + navigationComponentId + '"]').length < 1) {
+      $('.t3js-scaffold-content-navigation')
+        .append($('<div />', {
+          'class': 'scaffold-content-navigation-component',
+          'data-component': navigationComponentId,
+          id: 'navigationComponent-' + componentCssName,
+        }));
+    }
+
+    require([navigationComponentId], (NavigationComponent: NavigationComponentInterface): void => {
+      NavigationComponent.initialize('#navigationComponent-' + componentCssName);
+      Viewport.NavigationContainer.show(navigationComponentId);
+      me.loadedNavigationComponentId = navigationComponentId;
+    });
+  }
+
+  /**
    * @param {string} url
    * @param {string} params
    * @param {InteractionRequest} interactionRequest
    * @returns {JQueryDeferred<TriggerRequest>}
    */
   private openInNavFrame(url: string, params: string, interactionRequest: InteractionRequest): JQueryDeferred<TriggerRequest> {
-    const navUrl = url + (params ? (url.includes('?') ? '&' : '?') + params : '');
+    const navUrl = url + (params ? (url.indexOf('?') !== -1 ? '&' : '?') + params : '');
     const currentUrl = Viewport.NavigationContainer.getUrl();
     const deferred = Viewport.NavigationContainer.setUrl(
       url,
@@ -535,28 +386,25 @@ class ModuleMenu {
   }
 
   /**
-   * @param {string} module
    * @param {string} url
    * @param {string} params
    * @param {InteractionRequest} interactionRequest
    * @returns {JQueryDeferred<TriggerRequest>}
    */
-  private openInContentContainer(module: string, url: string, params: string, interactionRequest: InteractionRequest):  JQueryDeferred<TriggerRequest> {
+  private openInContentFrame(url: string, params: string, interactionRequest: InteractionRequest):  JQueryDeferred<TriggerRequest> {
     let deferred;
 
     if (top.nextLoadModuleUrl) {
       deferred = Viewport.ContentContainer.setUrl(
         top.nextLoadModuleUrl,
         new TriggerRequest('typo3.openInContentFrame', interactionRequest),
-        null
       );
       top.nextLoadModuleUrl = '';
     } else {
-      const urlToLoad = url + (params ? (url.includes('?') ? '&' : '?') + params : '');
+      const urlToLoad = url + (params ? (url.indexOf('?') !== -1 ? '&' : '?') + params : '');
       deferred = Viewport.ContentContainer.setUrl(
         urlToLoad,
         new TriggerRequest('typo3.openInContentFrame', interactionRequest),
-        module
       );
     }
 

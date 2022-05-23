@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,7 +11,7 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import $ from 'jquery';
+import * as $ from 'jquery';
 
 /**
  * Module: TYPO3/CMS/Backend/DebugConsole
@@ -76,11 +75,10 @@ class DebugConsole {
     if ($tab.length === 0) {
       // create new tab
       $tab =
-        $('<li />', {role: 'presentation', class: 'nav-item', 'data-identifier': tabIdentifier}).append(
+        $('<li />', {role: 'presentation', 'data-identifier': tabIdentifier}).append(
           $('<a />', {
             'aria-controls': tabIdentifier,
-            'data-bs-toggle': 'tab',
-            class: 'nav-link',
+            'data-toggle': 'tab',
             href: '#' + tabIdentifier,
             role: 'tab',
           }).text(group + ' ').append(

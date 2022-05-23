@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -12,14 +11,10 @@
  * The TYPO3 project - inspiring people to share!
  */
 
-import {BroadcastMessage} from 'TYPO3/CMS/Backend/BroadcastMessage';
-import {AjaxResponse} from 'TYPO3/CMS/Core/Ajax/AjaxResponse';
-import AjaxRequest = require('TYPO3/CMS/Core/Ajax/AjaxRequest');
 import {SeverityEnum} from './Enum/Severity';
 import MessageInterface from './AjaxDataHandler/MessageInterface';
 import ResponseInterface from './AjaxDataHandler/ResponseInterface';
-import $ from 'jquery';
-import BroadcastService = require('TYPO3/CMS/Backend/BroadcastService');
+import * as $ from 'jquery';
 import Icons = require('./Icons');
 import Modal = require('./Modal');
 import Notification = require('./Notification');
@@ -29,13 +24,6 @@ enum Identifiers {
   hide = '.t3js-record-hide',
   delete = '.t3js-record-delete',
   icon = '.t3js-icon',
-}
-
-interface AfterProcessEventDict {
-  component: string;
-  action: string;
-  table: string;
-  uid: number;
 }
 
 /**
@@ -48,20 +36,9 @@ class AjaxDataHandler {
    * Refresh the page tree
    */
   private static refreshPageTree(): void {
-    top.document.dispatchEvent(new CustomEvent('typo3:pagetree:refresh'));
-  }
-
-  /**
-   * AJAX call to record_process route (SimpleDataHandlerController->processAjaxRequest)
-   * returns a jQuery Promise to work with
-   *
-   * @param {string | object} params
-   * @returns {Promise<any>}
-   */
-  private static call(params: string | object): Promise<ResponseInterface> {
-    return (new AjaxRequest(TYPO3.settings.ajaxUrls.record_process)).withQueryArguments(params).get().then(async (response: AjaxResponse): Promise<ResponseInterface> => {
-      return await response.resolve();
-    });
+    if (Viewport.NavigationContainer && Viewport.NavigationContainer.PageTree) {
+      Viewport.NavigationContainer.PageTree.refreshTree();
+    }
   }
 
   constructor() {
@@ -73,39 +50,17 @@ class AjaxDataHandler {
   /**
    * Generic function to call from the outside the script and validate directly showing errors
    *
-   * @param {string | object} parameters
-   * @param {AfterProcessEventDict} eventDict Dictionary used as event detail. This is private API yet.
-   * @returns {Promise<any>}
+   * @param {Object} parameters
+   * @returns {JQueryPromise<any>}
    */
-  public process(parameters: string | object, eventDict?: AfterProcessEventDict): Promise<any> {
-    const promise = AjaxDataHandler.call(parameters);
-    return promise.then((result: ResponseInterface): ResponseInterface => {
+  public process(parameters: Object): JQueryPromise<any> {
+    return this._call(parameters).done((result: ResponseInterface): void => {
       if (result.hasErrors) {
         this.handleErrors(result);
       }
-
-      if (eventDict) {
-        const payload = {...eventDict, hasErrors: result.hasErrors};
-        const message = new BroadcastMessage(
-          'datahandler',
-          'process',
-          payload
-        );
-        BroadcastService.post(message);
-
-        const event = new CustomEvent('typo3:datahandler:process',{
-          detail: {
-            payload: payload
-          }
-        });
-        document.dispatchEvent(event);
-      }
-
-      return result;
     });
   }
 
-  // TODO: Many extensions rely on this behavior but it's misplaced in AjaxDataHandler. Move into Recordlist.ts and deprecate in v11.
   private initialize(): void {
     // HIDE/UNHIDE: click events for all action icons to hide/unhide
     $(document).on('click', Identifiers.hide, (e: JQueryEventObject): void => {
@@ -119,8 +74,11 @@ class AjaxDataHandler {
       this._showSpinnerIcon($iconElement);
 
       // make the AJAX call to toggle the visibility
-      this.process(params).then((result: ResponseInterface): void => {
-        if (!result.hasErrors) {
+      this._call(params).done((result: ResponseInterface): void => {
+        // print messages on errors
+        if (result.hasErrors) {
+          this.handleErrors(result);
+        } else {
           // adjust overlay icon
           this.toggleRow($rowElement);
         }
@@ -181,24 +139,23 @@ class AjaxDataHandler {
     $anchorElement.data('state', nextState).data('params', nextParams);
 
     // Update tooltip title
-    $anchorElement.one('hidden.bs.tooltip', (): void => {
+    $anchorElement.tooltip('hide').one('hidden.bs.tooltip', (): void => {
       const nextTitle = $anchorElement.data('toggleTitle');
-      // Bootstrap Tooltip internally uses only .attr('data-bs-original-title')
+      // Bootstrap Tooltip internally uses only .attr('data-original-title')
       $anchorElement
-        .data('toggleTitle', $anchorElement.attr('data-bs-original-title'))
-        .attr('data-bs-original-title', nextTitle);
+        .data('toggleTitle', $anchorElement.attr('data-original-title'))
+        .attr('data-original-title', nextTitle);
     });
-    $anchorElement.tooltip('hide');
 
     const $iconElement = $anchorElement.find(Identifiers.icon);
-    Icons.getIcon(iconName, Icons.sizes.small).then((icon: string): void => {
+    Icons.getIcon(iconName, Icons.sizes.small).done((icon: string): void => {
       $iconElement.replaceWith(icon);
     });
 
     // Set overlay for the record icon
     const $recordIcon = $rowElement.find('.col-icon ' + Identifiers.icon);
     if (nextState === 'hidden') {
-      Icons.getIcon('miscellaneous-placeholder', Icons.sizes.small, 'overlay-hidden').then((icon: string): void => {
+      Icons.getIcon('miscellaneous-placeholder', Icons.sizes.small, 'overlay-hidden').done((icon: string): void => {
         $recordIcon.append($(icon).find('.icon-overlay'));
       });
     } else {
@@ -226,22 +183,23 @@ class AjaxDataHandler {
     // add a spinner
     this._showSpinnerIcon($iconElement);
 
-    const $table = $anchorElement.closest('table[data-table]');
-    const table = $table.data('table');
-    let $rowElements = $anchorElement.closest('tr[data-uid]');
-    const uid = $rowElements.data('uid');
-
     // make the AJAX call to toggle the visibility
-    const eventData = {component: 'datahandler', action: 'delete', table, uid};
-    this.process(params, eventData).then((result: ResponseInterface): void => {
+    this._call(params).done((result: ResponseInterface): void => {
       // revert to the old class
-      Icons.getIcon('actions-edit-delete', Icons.sizes.small).then((icon: string): void => {
+      Icons.getIcon('actions-edit-delete', Icons.sizes.small).done((icon: string): void => {
         $iconElement = $anchorElement.find(Identifiers.icon);
         $iconElement.replaceWith(icon);
       });
-      if (!result.hasErrors) {
+      // print messages on errors
+      if (result.hasErrors) {
+        this.handleErrors(result);
+      } else {
+        const $table = $anchorElement.closest('table[data-table]');
         const $panel = $anchorElement.closest('.panel');
         const $panelHeading = $panel.find('.panel-heading');
+        const table = $table.data('table');
+        let $rowElements = $anchorElement.closest('tr[data-uid]');
+        const uid = $rowElements.data('uid');
         const $translatedRowElements = $table.find('[data-l10nparent=' + uid + ']').closest('tr[data-uid]');
         $rowElements = $rowElements.add($translatedRowElements);
 
@@ -277,13 +235,24 @@ class AjaxDataHandler {
   }
 
   /**
+   * AJAX call to record_process route (SimpleDataHandlerController->processAjaxRequest)
+   * returns a jQuery Promise to work with
+   *
+   * @param {Object} params
+   * @returns {JQueryXHR}
+   */
+  private _call(params: Object): JQueryXHR {
+    return $.getJSON(TYPO3.settings.ajaxUrls.record_process, params);
+  }
+
+  /**
    * Replace the given icon with a spinner icon
    *
    * @param {Object} $iconElement
    * @private
    */
   private _showSpinnerIcon($iconElement: JQuery): void {
-    Icons.getIcon('spinner-circle-dark', Icons.sizes.small).then((icon: string): void => {
+    Icons.getIcon('spinner-circle-dark', Icons.sizes.small).done((icon: string): void => {
       $iconElement.replaceWith(icon);
     });
   }

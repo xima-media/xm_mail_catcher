@@ -1,4 +1,3 @@
-// @ts-nocheck
 /*
  * This file is part of the TYPO3 CMS project.
  *
@@ -36,10 +35,6 @@ class InfoWindow {
       severity: SeverityEnum.notice,
     });
   }
-}
-
-if (!top.TYPO3.InfoWindow) {
-  top.TYPO3.InfoWindow = InfoWindow;
 }
 
 // expose as global object
