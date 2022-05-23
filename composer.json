@@ -1,5 +1,5 @@
 {
-  "name": "xima/xm-mail-catcher",
+  "name": "xima-media/xm-mail-catcher",
   "type": "typo3-cms-extension",
   "description": "Display mails that were send to log file",
   "homepage": "https://www.xima.de",
