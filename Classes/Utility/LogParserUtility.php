@@ -133,7 +133,7 @@ class LogParserUtility
             }
         }
 
-        preg_match('/(?:boundary\=)(.*)(?:\r\n)/m', $msg, $boundary);
+        preg_match('/(?:boundary\=\")(.*)(?:\"\r\n)/m', $msg, $boundary);
         if (!isset($boundary[1])) {
             return $dto;
         }
