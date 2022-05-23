@@ -10,12 +10,15 @@ use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 
 class LogParserUtility
 {
-    protected string $fileContent = '';
+    /**
+     * @var string
+     */
+    protected $fileContent = '';
 
     /**
      * @var array<MailMessage>
      */
-    protected array $messages = [];
+    protected $messages = [];
 
     protected function loadLogFile(): void
     {
@@ -46,7 +49,7 @@ class LogParserUtility
             return;
         }
 
-        file_put_contents($absolutePath, '');
+        //file_put_contents($absolutePath, '');
     }
 
     protected function extractMessages(): void
@@ -56,7 +59,7 @@ class LogParserUtility
         }
 
         preg_match_all(
-            '/(?:; boundary=)(.+)(?:\r\n)/Ums',
+            '/(?:boundary=\")(.+)(?:\"\r\n)/Ums',
             $this->fileContent,
             $boundaries
         );

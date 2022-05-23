@@ -4,23 +4,50 @@ namespace Xima\XmMailCatcher\Domain\Model\Dto;
 
 class MailMessage
 {
-    public string $messageId = '';
+    /**
+     * @var string
+     */
+    public $messageId = '';
 
-    public ?\DateTime $date = null;
+    /**
+     * @var null|\DateTime
+     */
+    public $date = null;
 
-    public string $subject = '';
+    /**
+     * @var string
+     */
+    public $subject = '';
 
-    public string $from = '';
+    /**
+     * @var string
+     */
+    public $from = '';
 
-    public string $fromName = '';
+    /**
+     * @var string
+     */
+    public $fromName = '';
 
-    public string $to = '';
+    /**
+     * @var string
+     */
+    public $to = '';
 
-    public string $toName = '';
+    /**
+     * @var string
+     */
+    public $toName = '';
 
-    public string $bodyPlain = '';
+    /**
+     * @var string
+     */
+    public $bodyPlain = '';
 
-    public string $bodyHtml = '';
+    /**
+     * @var string
+     */
+    public $bodyHtml = '';
 
     public function getFileName(): string
     {
