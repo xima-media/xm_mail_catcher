@@ -11,12 +11,18 @@ class MailCatcher {
     $('.content-type-switches a').on('click', this.onContentTypeSwitchClick.bind(this));
     $('button[data-delete]').on('click', this.onDeleteButtonClick.bind(this));
     $('#delete-all-messages').on('click', this.onDeleteAllMessagesClick.bind(this));
-    $('.panel.panel-default button').on('click', this.onPanelClick.bind(this));
+    $('.panel.panel-default .form-irre-header-body').on('click', this.onPanelClick.bind(this));
   }
 
   protected onPanelClick(e: Event) {
     e.preventDefault();
-    $(e.currentTarget).closest('.panel').find('.panel-collapse').toggleClass('collapse');
+    e.stopPropagation();
+    const $body = $(e.currentTarget).closest('.panel').find('.panel-collapse');
+    if ($body.hasClass('collapse')) {
+      $body.removeClass('collapse');
+    } else {
+      $body.addClass('collapse');
+    }
   }
 
   protected onDeleteAllMessagesClick(e: Event) {

@@ -32,14 +32,14 @@
 						<div class="form-irre-object panel panel-default panel-condensed panel-visible" data-message-file="{mail.fileName}" data-html-loaded="false">
 							<div class="panel-heading" id="h{i.cycle}">
 								<div class="form-irre-header">
-									<button class="form-irre-header-cell form-irre-header-button" aria-expanded="false">
+									<div class="form-irre-header-cell form-irre-header-body" aria-expanded="false">
 										<div class="form-irre-header-body"
 											 data-bs-toggle="collapse"
 											 data-bs-target="#m{i.cycle}">
 											<strong>{mail.displayFromAddress}</strong><br/>
 											<span>{mail.subject}</span>
 										</div>
-									</button>
+									</div>
 									<div class="form-irre-header-cell form-irre-header-control">
 										<div class="btn-group btn-group-sm" role="group">
 											<button type="button"
@@ -118,5 +118,9 @@
 
 	#delete-all-messages {
 		margin-top: 30px;
+	}
+	
+	.form-irre-header-body {
+		cursor: pointer;
 	}
 </style>
