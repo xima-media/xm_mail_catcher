@@ -69,7 +69,7 @@ class LogParserUtility
         $this->fileContent = quoted_printable_decode($this->fileContent);
 
         foreach ($boundaries[1] as $boundary) {
-            $separator = '--' .$boundary . '--';
+            $separator = '--' . $boundary . '--';
             $messageParts = explode($separator, $this->fileContent);
             $messageString = $messageParts[0];
             $this->fileContent = $messageParts[1];
