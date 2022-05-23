@@ -56,21 +56,23 @@ class LogParserUtility
         }
 
         preg_match_all(
-            '/(?:---------- MESSAGE FOLLOWS ----------\n)(.*)(?:------------ END MESSAGE ------------)+/Ums',
+            '/(?:; boundary=)(.+)(?:\r\n)/Ums',
             $this->fileContent,
-            $messages
+            $boundaries
         );
 
-        if (!isset($messages[1])) {
+        if (!isset($boundaries[1])) {
             return;
         }
 
-        foreach ($messages[1] as $messageString) {
-            // remove line breaks that cut strings
-            $messageString = preg_replace("/\=(\'|\")\nb(\'|\")/Ums", '', (string)$messageString);
-            // remove b' '
-            $messageString = preg_replace("/^b(\'|\")(.*)(\'|\")$/Ums", '$2', (string)$messageString);
-            // convert to object
+        // decode whole file
+        $this->fileContent = quoted_printable_decode($this->fileContent);
+
+        foreach ($boundaries[1] as $boundary) {
+            $separator = '--' . $boundary . '--';
+            $messageParts = explode($separator, $this->fileContent);
+            $messageString = $messageParts[0];
+            $this->fileContent = $messageParts[1];
             $this->messages[] = self::convertToDto((string)$messageString);
         }
     }
@@ -94,7 +96,7 @@ class LogParserUtility
             $dto->fromName = $fromName[1];
         }
 
-        preg_match('/(?:(?:^From:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^From:\s)(.*)(?:\n))/m', $msg, $from);
+        preg_match('/(?:(?:^From:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^From:\s)(.*)(?:\r\n))/m', $msg, $from);
         if (isset($from[1])) {
             $dto->from = array_values(array_filter($from))[1];
         }
@@ -104,22 +106,22 @@ class LogParserUtility
             $dto->toName = $toName[1];
         }
 
-        preg_match('/(?:(?:^To:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^To:\s)(.*)(?:\n))/m', $msg, $to);
+        preg_match('/(?:(?:^To:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
         if (isset($to[1])) {
             $dto->to = array_values(array_filter($to))[1];
         }
 
-        preg_match('/(?:^Subject:\s)(.*)(?:\n)/m', $msg, $subject);
+        preg_match('/(?:^Subject:\s)(.*)(?:\r\n)/m', $msg, $subject);
         if (isset($subject[1])) {
             $dto->subject = $subject[1];
         }
 
-        preg_match('/(?:^Message-ID:\s\<)(.*)(?:\>\n)/m', $msg, $messageId);
+        preg_match('/(?:^Message-ID:\s\<)(.*)(?:\>\r\n)/m', $msg, $messageId);
         if (isset($messageId[1])) {
             $dto->messageId = $messageId[1];
         }
 
-        preg_match('/(?:^Date:\s)(.*)(?:\n)/m', $msg, $date);
+        preg_match('/(?:^Date:\s)(.*)(?:\r\n)/m', $msg, $date);
         if (isset($date[1])) {
             try {
                 $date = new JsonDateTime($date[1]);
@@ -128,7 +130,7 @@ class LogParserUtility
             }
         }
 
-        preg_match('/(?:boundary\=)(.*)(?:\n)/m', $msg, $boundary);
+        preg_match('/(?:boundary\=)(.*)(?:\r\n)/m', $msg, $boundary);
         if (!isset($boundary[1])) {
             return $dto;
         }
@@ -136,12 +138,10 @@ class LogParserUtility
         $messageParts = explode('--' . $boundary[1], $msg);
         foreach ($messageParts as $part) {
             if (strpos($part, 'Content-Type: text/plain')) {
-                $body = self::removeFirstThreeLines($part);
-                $dto->bodyPlain = quoted_printable_decode($body);
+                $dto->bodyPlain = self::removeFirstThreeLines($part);
             }
             if (strpos($part, 'Content-Type: text/html')) {
-                $body = self::removeFirstThreeLines($part);
-                $dto->bodyHtml = quoted_printable_decode($body);
+                $dto->bodyHtml = self::removeFirstThreeLines($part);
             }
         }
 
