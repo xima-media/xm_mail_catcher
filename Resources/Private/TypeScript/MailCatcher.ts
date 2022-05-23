@@ -12,7 +12,14 @@ class MailCatcher {
 		$('.content-type-switches a').on('click', this.onContentTypeSwitchClick.bind(this));
 		$('button[data-delete]').on('click', this.onDeleteButtonClick.bind(this));
 		$('#delete-all-messages').on('click', this.onDeleteAllMessagesClick.bind(this));
+    $('.panel.panel-default button').on('click', this.onPanelClick.bind(this));
 	}
+
+  protected onPanelClick(e: Event)
+  {
+    e.preventDefault();
+    $(e.currentTarget).closest('.panel').find('.panel-collapse').toggleClass('collapse');
+  }
 
 	protected onDeleteAllMessagesClick(e: Event)
 	{
@@ -91,8 +98,8 @@ class MailCatcher {
 		const contentType = $(e.currentTarget).attr('data-content-type');
 		const mId = $(e.currentTarget).attr('data-m-id');
 
-		$('.content-type-switches a[data-m-id="' + mId + '"]').addClass('btn-outline-primary').removeClass('btn-primary');
-		$('.content-type-switches a[data-m-id="' + mId + '"][data-content-type="' + contentType + '"]').removeClass('btn-outline-primary').addClass('btn-primary');
+		$('.content-type-switches a[data-m-id="' + mId + '"]').addClass('btn-default').removeClass('btn-primary');
+		$('.content-type-switches a[data-m-id="' + mId + '"][data-content-type="' + contentType + '"]').removeClass('btn-default').addClass('btn-primary');
 
 		$('.form-section[data-m-id="' + mId + '"]').addClass('hidden');
 		const $formSection = $('.form-section[data-m-id="' + mId + '"][data-content-type="' + contentType + '"]');
@@ -112,6 +119,7 @@ class MailCatcher {
 			.then(async function (response) {
 				const resolved = await response.resolve();
 				const $iframe = $('<iframe />')
+					.attr('frameBorder', '0')
 					.attr('width', '100%')
 					.attr('height', '500px')
 					.attr('srcdoc', resolved.src);

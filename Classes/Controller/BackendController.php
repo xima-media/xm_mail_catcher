@@ -10,15 +10,14 @@ use Xima\XmMailCatcher\Utility\LogParserUtility;
 
 class BackendController extends ActionController
 {
-    protected ModuleTemplateFactory $moduleTemplateFactory;
+    /**
+     * Backend Template Container
+     *
+     * @var string
+     */
+    protected $defaultViewObjectName = \TYPO3\CMS\Backend\View\BackendTemplateView::class;
 
-    public function __construct(
-        ModuleTemplateFactory $moduleTemplateFactory
-    ) {
-        $this->moduleTemplateFactory = $moduleTemplateFactory;
-    }
-
-    public function indexAction(): ResponseInterface
+    public function indexAction()
     {
         $parser = GeneralUtility::makeInstance(LogParserUtility::class);
         $parser->run();
@@ -28,9 +27,5 @@ class BackendController extends ActionController
         $pageRenderer->loadRequireJsModule('TYPO3/CMS/XmMailCatcher/MailCatcher');
 
         $this->view->assign('mails', $mails);
-
-        $moduleTemplate = $this->moduleTemplateFactory->create($this->request);
-        $moduleTemplate->setContent($this->view->render());
-        return $this->htmlResponse($moduleTemplate->renderContent());
     }
 }

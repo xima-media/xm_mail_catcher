@@ -1,19 +1,19 @@
 <div class="container">
 	<div class="row justify-content-md-center">
-		<div class="col"></div>
+		<div class="col col-lg-2"></div>
 		<div class="col col-lg-10">
 			<h1>Mail Log</h1>
 		</div>
 	</div>
 	<div class="row justify-content-md-center">
-		<div class="col">
+		<div class="col col-lg-2">
 			<ul class="list-group">
 				<li class="list-group-item">Inbox (<span class="message-count">{mails->f:count()}</span>)
 				</li>
 			</ul>
 
 			<div class="text-center">
-				<button type="button" class="btn btn-outline-danger" id="delete-all-messages">
+				<button type="button" class="btn btn-danger" id="delete-all-messages">
 					<core:icon identifier="actions-delete" size="small"/>
 					Delete all messages
 				</button>
@@ -29,7 +29,7 @@
 			<f:if condition="{mails}">
 				<div class="panel-group panel-hover" id="messages">
 					<f:for each="{mails}" iteration="i" as="mail">
-						<div class="panel" data-message-file="{mail.fileName}" data-html-loaded="false">
+						<div class="form-irre-object panel panel-default panel-condensed panel-visible" data-message-file="{mail.fileName}" data-html-loaded="false">
 							<div class="panel-heading" id="h{i.cycle}">
 								<div class="form-irre-header">
 									<button class="form-irre-header-cell form-irre-header-button" aria-expanded="false">
@@ -57,19 +57,19 @@
 								<div class="tab-content">
 									<div class="tab-header">
 										<div class="row">
-											<div class="col">
+											<div class="col-sm-8">
 												<span><strong>To:</strong>
 													{mail.displayToAddress}<br/><strong>Date:</strong>
 													<f:format.date format="H:i, d.m.Y">{mail.date}</f:format.date>
 												</span>
 											</div>
-											<div class="col text-right">
+											<div class="col col-sm-4 text-right">
 												<div class="btn-group content-type-switches">
 													<a class="btn btn-primary"
 													   data-content-type="plain"
 													   data-m-id="{i.cycle}">Plain
 													</a>
-													<a class="btn btn-outline-primary"
+													<a class="btn btn-default"
 													   data-content-type="html"
 													   data-m-id="{i.cycle}">HTML
 													</a>
