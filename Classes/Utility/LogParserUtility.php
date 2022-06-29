@@ -55,17 +55,25 @@ class LogParserUtility
             return;
         }
 
-        $messageParts = preg_split('/(^From\s.*\n^Message-ID\:\s)/Ums', $this->fileContent, 0,
-            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        preg_match_all(
+            '/(?:; boundary=)(.+)(?:\r\n)/Ums',
+            $this->fileContent,
+            $boundaries
+        );
 
-        if (!is_array($messageParts) || !count($messageParts) || count($messageParts) % 2 !== 0) {
+        if (!isset($boundaries[1])) {
             return;
         }
 
-        for ($i = 0; $i < count($messageParts); $i = $i + 2) {
-            $messageString = $messageParts[$i] . $messageParts[$i + 1];
-            $messageString = quoted_printable_decode($messageString);
-            $this->messages[] = self::convertToDto($messageString);
+        // decode whole file
+        $this->fileContent = quoted_printable_decode($this->fileContent);
+
+        foreach ($boundaries[1] as $boundary) {
+            $separator = '--' . $boundary . '--';
+            $messageParts = explode($separator, $this->fileContent);
+            $messageString = $messageParts[0];
+            $this->fileContent = $messageParts[1];
+            $this->messages[] = self::convertToDto((string)$messageString);
         }
     }
 
@@ -88,7 +96,7 @@ class LogParserUtility
             $dto->fromName = $fromName[1];
         }
 
-        preg_match('/(?:^From\s)(.*)(?:\s\s)/m', $msg, $from);
+        preg_match('/(?:(?:^From:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^From:\s)(.*)(?:\r\n))/m', $msg, $from);
         if (isset($from[1])) {
             $dto->from = array_values(array_filter($from))[1];
         }
@@ -98,7 +106,7 @@ class LogParserUtility
             $dto->toName = $toName[1];
         }
 
-        preg_match('/(?:^To:\s.*\<)(.*)(?:\>\r\n)|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
+        preg_match('/(?:(?:^To:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
         if (isset($to[1])) {
             $dto->to = array_values(array_filter($to))[1];
         }
