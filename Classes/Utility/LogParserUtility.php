@@ -49,7 +49,7 @@ class LogParserUtility
             return;
         }
 
-        //file_put_contents($absolutePath, '');
+        file_put_contents($absolutePath, '');
     }
 
     protected function extractMessages(): void
@@ -58,25 +58,21 @@ class LogParserUtility
             return;
         }
 
-        preg_match_all(
-            '/(?:boundary=\")(.+)(?:\"\r\n)/Ums',
+        $messageParts = preg_split(
+            '/(^From\s.*\n^Message-ID\:\s)/Ums',
             $this->fileContent,
-            $boundaries
+            0,
+            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
         );
 
-        if (!isset($boundaries[1])) {
+        if (!is_array($messageParts) || !count($messageParts) || count($messageParts) % 2 !== 0) {
             return;
         }
 
-        // decode whole file
-        $this->fileContent = quoted_printable_decode($this->fileContent);
-
-        foreach ($boundaries[1] as $boundary) {
-            $separator = '--' . $boundary . '--';
-            $messageParts = explode($separator, $this->fileContent);
-            $messageString = $messageParts[0];
-            $this->fileContent = $messageParts[1];
-            $this->messages[] = self::convertToDto((string)$messageString);
+        for ($i = 0; $i < count($messageParts); $i = $i + 2) {
+            $messageString = $messageParts[$i] . $messageParts[$i + 1];
+            $messageString = quoted_printable_decode($messageString);
+            $this->messages[] = self::convertToDto($messageString);
         }
     }
 
@@ -99,7 +95,7 @@ class LogParserUtility
             $dto->fromName = $fromName[1];
         }
 
-        preg_match('/(?:(?:^From:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^From:\s)(.*)(?:\r\n))/m', $msg, $from);
+        preg_match('/(?:^From\s)(.*)(?:\s\s)/m', $msg, $from);
         if (isset($from[1])) {
             $dto->from = array_values(array_filter($from))[1];
         }
@@ -109,7 +105,7 @@ class LogParserUtility
             $dto->toName = $toName[1];
         }
 
-        preg_match('/(?:(?:^To:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
+        preg_match('/(?:^To:\s.*\<)(.*)(?:\>\r\n)|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
         if (isset($to[1])) {
             $dto->to = array_values(array_filter($to))[1];
         }
@@ -134,11 +130,36 @@ class LogParserUtility
         }
 
         preg_match('/(?:boundary\=\")(.*)(?:\"\r\n)/m', $msg, $boundary);
-        if (!isset($boundary[1])) {
+        if (isset($boundary[1])) {
+            self::extractMessageBodyByBoundary($boundary[1], $msg, $dto);
             return $dto;
         }
 
-        $messageParts = explode('--' . $boundary[1], $msg);
+        self::extractSingleMessageBody($msg, $dto);
+
+        return $dto;
+    }
+
+    public static function extractSingleMessageBody(string $msg, MailMessage &$dto): void
+    {
+        $messageParts = preg_split('/(?:^[\w\-]+:\s.*\r\n\r\n)/m', $msg);
+
+        if (!is_array($messageParts) || !isset($messageParts[1]) || !$messageParts[1]) {
+            return;
+        }
+
+        $isHtmlType = strpos($msg, 'Content-Type: text/html') !== false;
+        if ($isHtmlType) {
+            $dto->bodyHtml = $messageParts[1];
+            return;
+        }
+
+        $dto->bodyPlain = $messageParts[1];
+    }
+
+    public static function extractMessageBodyByBoundary(string $boundary, string $msg, MailMessage &$dto): void
+    {
+        $messageParts = explode('--' . $boundary, $msg);
         foreach ($messageParts as $part) {
             if (strpos($part, 'Content-Type: text/plain')) {
                 $dto->bodyPlain = self::removeFirstThreeLines($part);
@@ -147,8 +168,6 @@ class LogParserUtility
                 $dto->bodyHtml = self::removeFirstThreeLines($part);
             }
         }
-
-        return $dto;
     }
 
     public static function removeFirstThreeLines(string $string): string
@@ -158,7 +177,13 @@ class LogParserUtility
 
     public static function getTempPath(): string
     {
-        return Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
+        $tempPath = Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
+
+        if (!is_dir($tempPath)) {
+            mkdir($tempPath);
+        }
+
+        return $tempPath;
     }
 
     public function run(): void
@@ -203,6 +228,11 @@ class LogParserUtility
 
         $fileContent = file_get_contents(self::getTempPath() . '/' . $filename);
         $data = json_decode((string)$fileContent, true);
+
+        if (!$data) {
+            return null;
+        }
+
         $message = new MailMessage();
         $message->loadFromJson($data);
 

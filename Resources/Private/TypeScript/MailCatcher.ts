@@ -23,6 +23,15 @@ class MailCatcher {
     } else {
       $body.addClass('collapse');
     }
+
+    // load html mail if no plain text body available
+    const htmlIsLoaded = $(e.currentTarget).attr('data-html-loaded') === 'true';
+    const onlyHtmlButton = $(e.currentTarget).closest('.panel').find('.content-type-switches a[data-content-type="html"]:only-child');
+    if (onlyHtmlButton.length && !htmlIsLoaded) {
+      const messageId = $(e.currentTarget).closest('.panel').attr('data-message-file');
+      this.loadHtmlMail(messageId);
+    }
+
   }
 
   protected onDeleteAllMessagesClick(e: Event) {

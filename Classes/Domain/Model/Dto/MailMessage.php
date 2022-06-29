@@ -10,9 +10,9 @@ class MailMessage
     public $messageId = '';
 
     /**
-     * @var null|\DateTime
+     * @var \DateTime|null
      */
-    public $date = null;
+    public $date;
 
     /**
      * @var string
