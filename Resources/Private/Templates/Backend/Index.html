@@ -65,26 +65,34 @@
 											</div>
 											<div class="col col-sm-4 text-right">
 												<div class="btn-group content-type-switches">
-													<a class="btn btn-primary"
-													   data-content-type="plain"
-													   data-m-id="{i.cycle}">Plain
-													</a>
-													<a class="btn btn-default"
-													   data-content-type="html"
-													   data-m-id="{i.cycle}">HTML
-													</a>
+													<f:if condition="{mail.bodyPlain}">
+														<a class="btn btn-primary"
+															 data-content-type="plain"
+															 data-m-id="{i.cycle}">Plain
+														</a>
+													</f:if>
+													<f:if condition="{mail.bodyHtml}">
+														<a class="btn {f:if(condition: mail.bodyPlain, then: 'btn-default', else: 'btn-primary')}"
+															 data-content-type="html"
+															 data-m-id="{i.cycle}">HTML
+														</a>
+													</f:if>
 												</div>
 											</div>
 										</div>
 									</div>
-									<div class="form-section" data-content-type="plain" data-m-id="{i.cycle}">
-										<p>{mail.bodyPlain->f:format.nl2br()}</p>
-									</div>
-									<div class="form-section hidden" data-content-type="html" data-m-id="{i.cycle}">
-										<div class="loading">
-											<core:icon identifier="spinner-circle-dark" size="default"/>
+									<f:if condition="{mail.bodyPlain}">
+										<div class="form-section" data-content-type="plain" data-m-id="{i.cycle}">
+											<p>{mail.bodyPlain->f:format.nl2br()}</p>
 										</div>
-									</div>
+									</f:if>
+									<f:if condition="{mail.bodyHtml}">
+										<div class="form-section {f:if(condition: mail.bodyPlain, then: 'hidden')}" data-content-type="html" data-m-id="{i.cycle}">
+											<div class="loading">
+												<core:icon identifier="spinner-circle-dark" size="default"/>
+											</div>
+										</div>
+									</f:if>
 								</div>
 							</div>
 						</div>
@@ -119,7 +127,7 @@
 	#delete-all-messages {
 		margin-top: 30px;
 	}
-	
+
 	.form-irre-header-body {
 		cursor: pointer;
 	}
