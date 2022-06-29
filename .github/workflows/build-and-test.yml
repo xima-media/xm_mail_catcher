@@ -112,7 +112,6 @@ jobs:
         with:
           token: ${{ secrets.PAT }}
           commit-message: '[Release] ${{ env.GITHUB_SHA }}'
-          committer: GitHub <noreply@github.com>
           author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
           signoff: false
           branch: release-${{needs.version-check.outputs.typo3-ext-version}}
