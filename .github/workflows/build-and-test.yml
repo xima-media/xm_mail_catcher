@@ -108,14 +108,3 @@ jobs:
           committer_email: actions@github.com
           message: '[Build] Clean up'
           new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
-      - uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.PAT }}
-          commit-message: '[Release] ${{ env.GITHUB_SHA }}'
-          author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
-          signoff: false
-          branch: release-${{needs.version-check.outputs.typo3-ext-version}}
-          base: 9.x
-          delete-branch: true
-          title: '[Release] ${{ env.GITHUB_SHA }}'
-          draft: false
