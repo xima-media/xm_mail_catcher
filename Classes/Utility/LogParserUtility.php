@@ -49,7 +49,7 @@ class LogParserUtility
             return;
         }
 
-        //file_put_contents($absolutePath, '');
+        file_put_contents($absolutePath, '');
     }
 
     protected function extractMessages(): void
@@ -229,7 +229,7 @@ class LogParserUtility
         if (!$data) {
             return null;
         }
-        
+
         $message = new MailMessage();
         $message->loadFromJson($data);
 
