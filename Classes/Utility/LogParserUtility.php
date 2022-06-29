@@ -122,12 +122,18 @@ class LogParserUtility
             }
         }
 
-        preg_match('/(?:boundary\=)(.*)(?:\r\n)/m', $msg, $boundary);
-        if (!isset($boundary[1])) {
+        preg_match('/(?:boundary\=\")(.*)(?:\"\r\n)/m', $msg, $boundary);
+        if (isset($boundary[1])) {
+            self::extractMessageBodyByBoundary($boundary[1], $msg, $dto);
             return $dto;
         }
 
-        $messageParts = explode('--' . $boundary[1], $msg);
+        return $dto;
+    }
+
+    public static function extractMessageBodyByBoundary(string $boundary, string $msg, MailMessage &$dto): void
+    {
+        $messageParts = explode('--' . $boundary, $msg);
         foreach ($messageParts as $part) {
             if (strpos($part, 'Content-Type: text/plain')) {
                 $dto->bodyPlain = self::removeFirstThreeLines($part);
@@ -136,8 +142,6 @@ class LogParserUtility
                 $dto->bodyHtml = self::removeFirstThreeLines($part);
             }
         }
-
-        return $dto;
     }
 
     public static function removeFirstThreeLines(string $string): string
