@@ -58,9 +58,12 @@ class LogParserUtility
             return;
         }
 
-
-        $messageParts = preg_split('/(^From\s.*\n^Message-ID\:\s)/Ums', $this->fileContent, 0,
-            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE);
+        $messageParts = preg_split(
+            '/(^From\s.*\n^Message-ID\:\s)/Ums',
+            $this->fileContent,
+            0,
+            PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
+        );
 
         if (!is_array($messageParts) || !count($messageParts) || count($messageParts) % 2 !== 0) {
             return;
