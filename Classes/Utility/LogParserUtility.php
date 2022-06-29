@@ -128,26 +128,7 @@ class LogParserUtility
             return $dto;
         }
 
-        self::extractSingleMessageBody($msg, $dto);
-
         return $dto;
-    }
-
-    public static function extractSingleMessageBody(string $msg, MailMessage &$dto): void
-    {
-        $messageParts = preg_split('/(?:^[\w\-]+:\s.*\r\n\r\n)/m', $msg);
-
-        if (!is_array($messageParts) || !isset($messageParts[1]) || !$messageParts[1]) {
-            return;
-        }
-
-        $isHtmlType = strpos($msg, 'Content-Type: text/html') !== false;
-        if ($isHtmlType) {
-            $dto->bodyHtml = $messageParts[1];
-            return;
-        }
-
-        $dto->bodyPlain = $messageParts[1];
     }
 
     public static function extractMessageBodyByBoundary(string $boundary, string $msg, MailMessage &$dto): void
@@ -221,11 +202,6 @@ class LogParserUtility
 
         $fileContent = file_get_contents(self::getTempPath() . '/' . $filename);
         $data = json_decode((string)$fileContent, true);
-
-        if (!$data) {
-            return null;
-        }
-        
         $message = new MailMessage();
         $message->loadFromJson($data);
 
