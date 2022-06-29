@@ -20,8 +20,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: assets
-          path: |
-            Resources/Public/JavaScript
+          path: Resources/Public/JavaScript
 
   php-lint:
     runs-on: ubuntu-latest
@@ -93,6 +92,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: assets
+          path: Resources/Public/JavaScript
       - uses: EndBug/add-and-commit@v9
         with:
           add: '.'
