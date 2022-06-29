@@ -12,7 +12,19 @@ class MailCatcher {
 		$('.content-type-switches a').on('click', this.onContentTypeSwitchClick.bind(this));
 		$('button[data-delete]').on('click', this.onDeleteButtonClick.bind(this));
 		$('#delete-all-messages').on('click', this.onDeleteAllMessagesClick.bind(this));
+    $('.panel').on('click', this.onPanelClick.bind(this));
 	}
+
+  protected onPanelClick(e: Event)
+  {
+    // load html mail if no plain text body available
+    const htmlIsLoaded = $(e.currentTarget).attr('data-html-loaded') === 'true';
+    const onlyHtmlButton = $('.content-type-switches a[data-content-type="html"]:only-child', e.currentTarget);
+    if (onlyHtmlButton.length && !htmlIsLoaded) {
+      const messageId = $(e.currentTarget).attr('data-message-file');
+      this.loadHtmlMail(messageId);
+    }
+  }
 
 	protected onDeleteAllMessagesClick(e: Event)
 	{
