@@ -177,7 +177,7 @@ class LogParserUtility
 
     public static function getTempPath(): string
     {
-        $tempPath = Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
+        $tempPath = Environment::getPublicPath() . '/typo3temp/logs/';
 
         if (!is_dir($tempPath)) {
             mkdir($tempPath);
