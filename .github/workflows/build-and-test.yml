@@ -96,6 +96,5 @@ jobs:
       - uses: peter-evans/create-pull-request@v4
         with:
           title: Release ${{needs.version-check.outputs.typo3-ext-version}}
-          base: release-${{needs.version-check.outputs.typo3-ext-version}}
-          branch: 9.x
+          branch: release-${{needs.version-check.outputs.typo3-ext-version}}
           delete-branch: false
