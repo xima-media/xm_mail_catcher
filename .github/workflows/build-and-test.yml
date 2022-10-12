@@ -88,6 +88,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+      - run: git checkout -b release-${{needs.version-check.outputs.typo3-ext-version}} 9.x-dev
       - name: Download assets
         uses: actions/download-artifact@v3
         with:
@@ -95,6 +96,13 @@ jobs:
           path: Resources/Public/JavaScript
       - name: Clean up
         run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: '.'
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
+          message: '[Build] ${{ env.GITHUB_SHA }}'
+          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - name: Create PR
         uses: peter-evans/create-pull-request@v4
         with:
