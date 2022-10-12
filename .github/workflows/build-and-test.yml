@@ -88,12 +88,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-      - name: Clean up
-        run: rm -rf ext_icon.svg .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
-      - name: Create PR
-        uses: peter-evans/create-pull-request@v4
+      - run: git checkout -b release-${{needs.version-check.outputs.typo3-ext-version}} 9.x-dev
+      - name: Download assets
+        uses: actions/download-artifact@v3
         with:
-          title: Release ${{needs.version-check.outputs.typo3-ext-version}}
-          branch: release-${{needs.version-check.outputs.typo3-ext-version}}
-          delete-branch: false
-          commit-message: 'build: version ${{needs.version-check.outputs.typo3-ext-version}}'
+          name: assets
+          path: Resources/Public/JavaScript
+      - name: Clean up
+        run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+      - name: Create PR
+        run: gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
