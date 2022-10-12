@@ -107,12 +107,11 @@ jobs:
       - name: Create PR
         id: pr
         run: |
-          PR_URL=$(gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build ${{ steps.commit.commit_sha }}' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}})
-          echo "::set-output name=pr-url::$(echo ${PR_URL})"
+          echo "PR_URL=$(gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build ${{ steps.commit.commit_sha }}' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}})" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Merge PR
-        run: gh pr merge ${{ steps.pr.pr-url }} -d -s
+        run: gh pr merge ${{ env.PR_URL }} -d
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: ncipollo/release-action@v1
