@@ -118,4 +118,5 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: "v${{needs.version-check.outputs.typo3-ext-version}}"
+          commit: 9.x
 
