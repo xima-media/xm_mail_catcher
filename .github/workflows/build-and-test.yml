@@ -103,5 +103,5 @@ jobs:
           title: Release ${{needs.version-check.outputs.typo3-ext-version}}
           base: '9.x'
           branch: 'release-${{needs.version-check.outputs.typo3-ext-version}}'
-          delete-branch: true
+          delete-branch: false
           commit-message: "build: version ${{needs.version-check.outputs.typo3-ext-version}}"
