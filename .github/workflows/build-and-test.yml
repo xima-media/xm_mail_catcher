@@ -25,7 +25,7 @@ jobs:
   php-lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         uses: shivammathur/setup-php@v2
         with:
@@ -36,7 +36,7 @@ jobs:
   php-fixer:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         uses: shivammathur/setup-php@v2
         with:
@@ -47,7 +47,7 @@ jobs:
   php-stan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install dependencies
         uses: shivammathur/setup-php@v2
         with:
@@ -66,12 +66,12 @@ jobs:
       latest-version: ${{ steps.main.outputs.latest-version }}
       typo3-ext-version: ${{ steps.dev.outputs.typo3-ext-version }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - id: dev
         run: |
           TYPO3_EXT_VERSION=$(cat ext_emconf.php | grep "version*" | grep -Po "(\d+\.)+\d+")
           echo "::set-output name=typo3-ext-version::$(echo ${TYPO3_EXT_VERSION})"
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: 9.x
       - run: git fetch --prune --unshallow --tags
@@ -86,25 +86,14 @@ jobs:
       - version-check
     if: ${{ needs.version-check.outputs.latest-version != needs.version-check.outputs.typo3-ext-version }}
     steps:
-      - uses: actions/checkout@v2
-      - run: git checkout -b release-${{needs.version-check.outputs.typo3-ext-version}} 9.x-dev
+      - uses: actions/checkout@v3
       - name: Download assets
         uses: actions/download-artifact@v3
         with:
           name: assets
           path: Resources/Public/JavaScript
-      - uses: EndBug/add-and-commit@v9
-        with:
-          add: '.'
-          committer_name: GitHub Actions
-          committer_email: actions@github.com
-          message: '[Build] ${{ env.GITHUB_SHA }}'
-          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
-      - uses: EndBug/add-and-commit@v9
+      - uses: peter-evans/create-pull-request@v4
         with:
-          add: '.'
-          committer_name: GitHub Actions
-          committer_email: actions@github.com
-          message: '[Build] Clean up'
-          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
+          branch: release-${{needs.version-check.outputs.typo3-ext-version}}
+          delete-branch: true
