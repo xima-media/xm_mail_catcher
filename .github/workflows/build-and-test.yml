@@ -86,22 +86,17 @@ jobs:
       - version-check
     if: ${{ needs.version-check.outputs.latest-version != needs.version-check.outputs.typo3-ext-version }}
     steps:
-      - uses: actions/checkout@v3
       - name: Download assets
         uses: actions/download-artifact@v3
         with:
           name: assets
           path: Resources/Public/JavaScript
-      - run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
-      - uses: peterjgrainger/action-create-branch@v2.2.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          branch: 'release-${{needs.version-check.outputs.typo3-ext-version}}'
+      - name: Clean up
+        run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
       - uses: peter-evans/create-pull-request@v4
         with:
           title: Release ${{needs.version-check.outputs.typo3-ext-version}}
-          base: '9.x'
-          branch: 'release-${{needs.version-check.outputs.typo3-ext-version}}'
+          base: 9.x
+          branch: release-${{needs.version-check.outputs.typo3-ext-version}}
           delete-branch: false
-          commit-message: "build: version ${{needs.version-check.outputs.typo3-ext-version}}"
+          commit-message: 'build: version ${{needs.version-check.outputs.typo3-ext-version}}'
