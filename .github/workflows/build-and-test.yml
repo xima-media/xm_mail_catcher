@@ -105,6 +105,18 @@ jobs:
           message: 'build: ${{needs.version-check.outputs.typo3-ext-version}}'
           new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - name: Create PR
-        run: gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build ${{ steps.commit.commit_sha }}' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}}
+        id: pr
+        run: |
+          PR_URL=$(gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build ${{ steps.commit.commit_sha }}' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}})
+          echo "::set-output name=pr-url::$(echo ${PR_URL})"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Merge PR
+        run: gh pr merge ${{ steps.pr.pr-url }} -d -s
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ncipollo/release-action@v1
+        with:
+          token: ${{ secrets.YOUR_GITHUB_TOKEN }}
+          tag: "v${{needs.version-check.outputs.typo3-ext-version}}"
+
