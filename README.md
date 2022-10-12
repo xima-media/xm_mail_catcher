@@ -25,4 +25,4 @@ In the configuration of this extension, adjust the path to the one, you just sel
 $GLOBALS['TYPO3_CONF_VARS']['EXTENSIONS']['xm_mail_catcher']['logPath'] = '/var/log/mail.log'
 ```
 
-lorem 
+lorem ipsum
