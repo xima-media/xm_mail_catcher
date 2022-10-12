@@ -1,8 +1,0 @@
-
-public
-node_modules
-!Resources/Public
-!typo3_src/TypeScript/*/Resources/Public
-Resources/Public/JavaScript
-var
-vendor
