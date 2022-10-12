@@ -89,13 +89,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
       - run: git checkout -b release-${{needs.version-check.outputs.typo3-ext-version}} 9.x-dev
-      - name: Download assets
-        uses: actions/download-artifact@v3
-        with:
-          name: assets
-          path: Resources/Public/JavaScript
       - name: Clean up
-        run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+        run: rm -rf ext_icon.svg .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+      - run: echo "test" > newfile.txt
       - uses: EndBug/add-and-commit@v9
         with:
           add: '.'
