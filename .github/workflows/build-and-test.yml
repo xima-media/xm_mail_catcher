@@ -96,7 +96,15 @@ jobs:
           path: Resources/Public/JavaScript
       - name: Clean up
         run: rm -rf .ddev .github config Configuration/php-cs-fixer.php node_modules public var vendor typo3_src .editorconfig .gitignore .phpstorm.meta.php package.json package-lock.json phpstan.neon phpstan-baseline.neon tsconfig.json webpack.js
+      - uses: EndBug/add-and-commit@v9
+        id: commit
+        with:
+          add: '.'
+          committer_name: GitHub Actions
+          committer_email: actions@github.com
+          message: 'build: ${{needs.version-check.outputs.typo3-ext-version}}'
+          new_branch: release-${{needs.version-check.outputs.typo3-ext-version}}
       - name: Create PR
-        run: gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build new version' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}}
+        run: gh pr create --title="Release ${{needs.version-check.outputs.typo3-ext-version}}" --body 'build ${{ steps.commit.commit_sha }}' --base 9.x --head release-${{needs.version-check.outputs.typo3-ext-version}}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
