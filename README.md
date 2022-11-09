@@ -4,7 +4,7 @@ This TYPO3 extension adds a module to view emails that were printed to file.
 
 **Requirements**: Python & 1 free Port
 
-![backend_module](Documentation/example_backend_module.jpg)
+![backend_module](Documentation/Images/example_backend_module.jpg)
 
 ## Installation
 
