@@ -55,6 +55,9 @@ class LogParserUtility
             return;
         }
 
+        // decode whole file
+        $this->fileContent = quoted_printable_decode($this->fileContent);
+
         preg_match_all(
             '/(?:; boundary=)(.+)(?:\r\n)/Ums',
             $this->fileContent,
@@ -64,9 +67,6 @@ class LogParserUtility
         if (!isset($boundaries[1])) {
             return;
         }
-
-        // decode whole file
-        $this->fileContent = quoted_printable_decode($this->fileContent);
 
         foreach ($boundaries[1] as $boundary) {
             $separator = '--' . $boundary . '--';
@@ -130,8 +130,8 @@ class LogParserUtility
             }
         }
 
-        preg_match('/(?:boundary\=)(.*)(?:\r\n)/m', $msg, $boundary);
-        if (!isset($boundary[1])) {
+        preg_match_all('/(?:boundary\=)(.*)(?:\r\n)/Ums', $msg, $boundaries);
+        if (!isset($boundaries[1])) {
             return $dto;
         }
 
