@@ -71,8 +71,13 @@ class LogParserUtility
         foreach ($boundaries[1] as $boundary) {
             $separator = '--' . $boundary . '--';
             $messageParts = explode($separator, $this->fileContent);
+
+            if (strpos($messageParts[0], 'boundary=') === false) {
+                continue;
+            }
+
             $messageString = $messageParts[0];
-            $this->fileContent = $messageParts[1];
+            $this->fileContent = $messageParts[1] ?? '';
             $this->messages[] = self::convertToDto((string)$messageString);
         }
     }
