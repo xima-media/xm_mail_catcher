@@ -140,13 +140,18 @@ class LogParserUtility
             return $dto;
         }
 
-        $messageParts = explode('--' . $boundary[1], $msg);
-        foreach ($messageParts as $part) {
-            if (strpos($part, 'Content-Type: text/plain')) {
-                $dto->bodyPlain = self::removeFirstThreeLines($part);
-            }
-            if (strpos($part, 'Content-Type: text/html')) {
-                $dto->bodyHtml = self::removeFirstThreeLines($part);
+        foreach ($boundaries[1] as $boundary) {
+            $messageParts = explode('--' . $boundary, $msg);
+            foreach ($messageParts as $part) {
+                if (strpos($part, 'Content-Type: text/plain')) {
+                    $dto->bodyPlain = self::removeFirstThreeLines($part);
+                }
+                if (strpos($part, 'Content-Type: text/html')) {
+                    $dto->bodyHtml = self::removeFirstThreeLines($part);
+                }
+                if (strpos($part, 'Content-Type: application/') || strpos($part, 'Content-Type: image/')) {
+                    // @TODO: extract base64 encoded file
+                }
             }
         }
 
