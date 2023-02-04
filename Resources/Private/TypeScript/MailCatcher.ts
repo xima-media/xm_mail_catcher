@@ -112,7 +112,7 @@ class MailCatcher {
 
 		const $panel = $(e.currentTarget).closest('.panel');
 
-		if ($panel.attr('data-html-loaded') === 'false') {
+		if ($panel.attr('data-html-loaded') === 'false' && contentType === 'html') {
 			this.loadHtmlMail($panel.attr('data-message-file'));
 		}
 	}
