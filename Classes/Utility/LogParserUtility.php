@@ -55,14 +55,14 @@ class LogParserUtility
             return;
         }
 
-        // decode whole file
-        $this->fileContent = quoted_printable_decode($this->fileContent);
-
         preg_match_all(
             '/(?:; boundary=)(.+)(?:\r\n)/Ums',
             $this->fileContent,
             $boundaries
         );
+
+        // decode whole file
+        $this->fileContent = quoted_printable_decode($this->fileContent);
 
         if (!isset($boundaries[1])) {
             return;
@@ -144,13 +144,13 @@ class LogParserUtility
             $messageParts = explode('--' . $boundary, $msg);
             foreach ($messageParts as $part) {
                 if (strpos($part, 'Content-Type: text/plain')) {
-                    $dto->bodyPlain = self::removeFirstThreeLines($part);
+                    $dto->bodyPlain = self::removeLinesFromStart($part, 3);
                 }
                 if (strpos($part, 'Content-Type: text/html')) {
-                    $dto->bodyHtml = self::removeFirstThreeLines($part);
+                    $dto->bodyHtml = self::removeLinesFromStart($part, 3);
                 }
                 if (strpos($part, 'Content-Type: application/') || strpos($part, 'Content-Type: image/')) {
-                    // @TODO: extract base64 encoded file
+                    self::createFile($part, $dto);
                 }
             }
         }
@@ -158,9 +158,31 @@ class LogParserUtility
         return $dto;
     }
 
-    public static function removeFirstThreeLines(string $string): string
+    protected static function createFile(string $messagePart, MailMessage $dto): void
     {
-        return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), 4));
+        try {
+            preg_match('/(?:filename=)(.+)(?:\r\n)/', $messagePart, $filenameParts);
+            $filename = $filenameParts[1];
+
+            $folder = self::getTempPath() . $dto->messageId;
+            if (!file_exists($folder)) {
+                mkdir($folder);
+            }
+
+            $filepath = $folder . '/' . $filename;
+            $data = self::removeLinesFromStart($messagePart, 5);
+            $data = str_replace(['\r', '\n'], '', $data);
+            $file = base64_decode($data);
+            file_put_contents($filepath, $file);
+
+            $dto->attachments[] = $filename;
+        } catch (\Exception $e) {
+        }
+    }
+
+    public static function removeLinesFromStart(string $string, int $lineCount): string
+    {
+        return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), ($lineCount + 1)));
     }
 
     public static function getTempPath(): string
