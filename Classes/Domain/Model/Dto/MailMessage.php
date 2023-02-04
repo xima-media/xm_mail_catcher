@@ -22,6 +22,7 @@ class MailMessage
 
     public string $bodyHtml = '';
 
+    /** @var MailAttachment[]  */
     public array $attachments = [];
 
     public function getFileName(): string

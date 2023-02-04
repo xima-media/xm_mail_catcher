@@ -6,6 +6,7 @@ use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Xima\XmMailCatcher\Domain\Model\Dto\JsonDateTime;
+use Xima\XmMailCatcher\Domain\Model\Dto\MailAttachment;
 use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 
 class LogParserUtility
@@ -174,8 +175,14 @@ class LogParserUtility
             $data = str_replace(['\r', '\n'], '', $data);
             $file = base64_decode($data);
             file_put_contents($filepath, $file);
+            $size = filesize($filepath) ?: 0;
 
-            $dto->attachments[] = $filename;
+            $mailAttachment = new MailAttachment();
+            $mailAttachment->filename = $filename;
+            $mailAttachment->filesize = $size;
+            $mailAttachment->publicPath = self::getPublicPath() . $dto->messageId . '/' . $filename;
+
+            $dto->attachments[] = $mailAttachment;
         } catch (\Exception $e) {
         }
     }
@@ -185,9 +192,14 @@ class LogParserUtility
         return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), ($lineCount + 1)));
     }
 
+    public static function getPublicPath(): string
+    {
+        return '/typo3temp/xm_mail_catcher/';
+    }
+
     public static function getTempPath(): string
     {
-        $tempPath = Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
+        $tempPath = Environment::getPublicPath() . self::getPublicPath();
 
         if (!is_dir($tempPath)) {
             mkdir($tempPath);
