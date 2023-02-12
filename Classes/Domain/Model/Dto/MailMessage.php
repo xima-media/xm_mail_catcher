@@ -22,6 +22,9 @@ class MailMessage
 
     public string $bodyHtml = '';
 
+    /** @var MailAttachment[]  */
+    public array $attachments = [];
+
     public function getFileName(): string
     {
         $name = hash('md5', $this->messageId);

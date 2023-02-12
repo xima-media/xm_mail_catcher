@@ -2,10 +2,14 @@
 
 namespace Xima\XmMailCatcher\Utility;
 
+use PhpMimeMailParser\Parser;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 use Xima\XmMailCatcher\Domain\Model\Dto\JsonDateTime;
+use Xima\XmMailCatcher\Domain\Model\Dto\MailAttachment;
 use Xima\XmMailCatcher\Domain\Model\Dto\MailMessage;
 
 class LogParserUtility
@@ -32,8 +36,8 @@ class LogParserUtility
     }
 
     /**
-     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
-     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
      */
     protected function emptyLogFile(): void
     {
@@ -61,18 +65,23 @@ class LogParserUtility
             $boundaries
         );
 
+        // decode whole file
+        $this->fileContent = quoted_printable_decode($this->fileContent);
+
         if (!isset($boundaries[1])) {
             return;
         }
 
-        // decode whole file
-        $this->fileContent = quoted_printable_decode($this->fileContent);
-
         foreach ($boundaries[1] as $boundary) {
             $separator = '--' . $boundary . '--';
             $messageParts = explode($separator, $this->fileContent);
+
+            if (!str_contains($messageParts[0], 'boundary=')) {
+                continue;
+            }
+
             $messageString = $messageParts[0];
-            $this->fileContent = $messageParts[1];
+            $this->fileContent = $messageParts[1] ?? '';
             $this->messages[] = self::convertToDto((string)$messageString);
         }
     }
@@ -80,7 +89,7 @@ class LogParserUtility
     protected function writeMessagesToFile(): void
     {
         foreach ($this->messages as $message) {
-            $fileContent = (string)json_encode($message);
+            $fileContent = (string)json_encode($message, JSON_THROW_ON_ERROR);
             $fileName = $message->getFileName();
             $filePath = self::getTempPath() . $fileName;
             GeneralUtility::writeFileToTypo3tempDir($filePath, $fileContent);
@@ -89,73 +98,87 @@ class LogParserUtility
 
     protected static function convertToDto(string $msg): MailMessage
     {
+        $parser = new Parser();
+        $parser->setText($msg);
         $dto = new MailMessage();
 
-        preg_match('/(?:^From:\s)(.*)(?:\s\<)/m', $msg, $fromName);
-        if (isset($fromName[1])) {
-            $dto->fromName = $fromName[1];
+        $fromAddresses = $parser->getAddresses('from');
+        if (isset($fromAddresses[0])) {
+            $dto->fromName = $fromAddresses[0]['display'] ?? '';
+            $dto->from = $fromAddresses[0]['address'] ?? '';
         }
 
-        preg_match('/(?:(?:^From:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^From:\s)(.*)(?:\r\n))/m', $msg, $from);
-        if (isset($from[1])) {
-            $dto->from = array_values(array_filter($from))[1];
+        $toAddresses = $parser->getAddresses('to');
+        if (isset($toAddresses[0])) {
+            $dto->toName = $toAddresses[0]['display'] ?? '';
+            $dto->to = $toAddresses[0]['address'] ?? '';
         }
 
-        preg_match('/(?:^To:\s)(.*)(?:\s\<)/m', $msg, $toName);
-        if (isset($toName[1])) {
-            $dto->toName = $toName[1];
+        $headers = $parser->getHeaders();
+        $dto->subject = $headers['subject'] ?? '';
+        $dto->messageId = md5($headers['message-id'] ?? '');
+        try {
+            $dto->date = new JsonDateTime($headers['date']);
+        } catch (\Exception $e) {
         }
 
-        preg_match('/(?:(?:^To:\s)(?:.*\<)(.*)(?:\>\n))|(?:(?:^To:\s)(.*)(?:\r\n))/m', $msg, $to);
-        if (isset($to[1])) {
-            $dto->to = array_values(array_filter($to))[1];
+        $dto->bodyPlain = @mb_convert_encoding($parser->getMessageBody('text'), 'UTF-8', 'auto');
+        $dto->bodyHtml = @mb_convert_encoding($parser->getMessageBody('html'), 'UTF-8', 'auto');
+
+        $folder = self::getTempPath() . $dto->messageId;
+        if (!file_exists($folder)) {
+            mkdir($folder);
         }
 
-        preg_match('/(?:^Subject:\s)(.*)(?:\r\n)/m', $msg, $subject);
-        if (isset($subject[1])) {
-            $dto->subject = $subject[1];
+        $attachments = $parser->getAttachments();
+
+        $folder = self::getTempPath() . $dto->messageId;
+        if (count($attachments) && !file_exists($folder)) {
+            mkdir($folder);
         }
 
-        preg_match('/(?:^Message-ID:\s\<)(.*)(?:\>\r\n)/m', $msg, $messageId);
-        if (isset($messageId[1])) {
-            $dto->messageId = $messageId[1];
-        }
+        foreach ($attachments as $attachment) {
+            $attachmentDto = new MailAttachment();
 
-        preg_match('/(?:^Date:\s)(.*)(?:\r\n)/m', $msg, $date);
-        if (isset($date[1])) {
-            try {
-                $date = new JsonDateTime($date[1]);
-                $dto->date = $date;
-            } catch (\Exception $e) {
+            // get filename from content disposition
+            $filename = $attachment->getFilename();
+            if (str_starts_with($filename, 'noname')) {
+                $headers = $attachment->getHeaders();
+                $disposition = $headers['content-disposition'] ?? '';
+                preg_match('/(?:; filename )(.+)/', $disposition, $filenameParts);
+                $filename = $filenameParts[1];
             }
-        }
+            $attachmentDto->filename = $filename;
 
-        preg_match('/(?:boundary\=)(.*)(?:\r\n)/m', $msg, $boundary);
-        if (!isset($boundary[1])) {
-            return $dto;
-        }
+            // calculate public path
+            $fullFilePath = $attachment->save($folder, Parser::ATTACHMENT_RANDOM_FILENAME);
+            $publicPath = str_replace(Environment::getPublicPath(), '', $fullFilePath);
+            $attachmentDto->publicPath = $publicPath;
 
-        $messageParts = explode('--' . $boundary[1], $msg);
-        foreach ($messageParts as $part) {
-            if (strpos($part, 'Content-Type: text/plain')) {
-                $dto->bodyPlain = self::removeFirstThreeLines($part);
-            }
-            if (strpos($part, 'Content-Type: text/html')) {
-                $dto->bodyHtml = self::removeFirstThreeLines($part);
-            }
+            // get file size
+            $fileSize = filesize($fullFilePath) ?: 0;
+            $attachmentDto->filesize = $fileSize;
+
+            $dto->attachments[] = $attachmentDto;
         }
 
         return $dto;
     }
 
-    public static function removeFirstThreeLines(string $string): string
+    public static function getPublicPath(): string
     {
-        return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), 4));
+        return '/typo3temp/xm_mail_catcher/';
     }
 
     public static function getTempPath(): string
     {
-        return Environment::getPublicPath() . '/typo3temp/xm_mail_catcher/';
+        $tempPath = Environment::getPublicPath() . self::getPublicPath();
+
+        if (!is_dir($tempPath)) {
+            mkdir($tempPath);
+        }
+
+        return $tempPath;
     }
 
     public function run(): void
@@ -168,9 +191,9 @@ class LogParserUtility
 
     public function loadMessages(): void
     {
-        $messageFiles = array_filter((array)scandir(self::getTempPath()), function ($filename) {
+        $messageFiles = array_reverse(array_filter((array)scandir(self::getTempPath()), function ($filename) {
             return strpos((string)$filename, '.json');
-        });
+        }));
 
         $this->messages = [];
 
@@ -182,7 +205,7 @@ class LogParserUtility
     }
 
     /**
-     * @return \Xima\XmMailCatcher\Domain\Model\Dto\MailMessage[]
+     * @return MailMessage[]
      */
     public function getMessages(): array
     {
