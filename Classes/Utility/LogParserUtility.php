@@ -122,8 +122,8 @@ class LogParserUtility
         } catch (\Exception $e) {
         }
 
-        $dto->bodyPlain = mb_convert_encoding($parser->getMessageBody('text'), 'UTF-8', 'auto');
-        $dto->bodyHtml = mb_convert_encoding($parser->getMessageBody('html'), 'UTF-8', 'auto');
+        $dto->bodyPlain = @mb_convert_encoding($parser->getMessageBody('text'), 'UTF-8', 'auto');
+        $dto->bodyHtml = @mb_convert_encoding($parser->getMessageBody('html'), 'UTF-8', 'auto');
 
         $folder = self::getTempPath() . $dto->messageId;
         if (!file_exists($folder)) {
@@ -186,7 +186,7 @@ class LogParserUtility
         $this->loadLogFile();
         $this->extractMessages();
         $this->writeMessagesToFile();
-        //$this->emptyLogFile();
+        $this->emptyLogFile();
     }
 
     public function loadMessages(): void
