@@ -2,7 +2,7 @@
 
 This TYPO3 extension adds a module to view emails that were printed to file.
 
-**Requirements**: Python & 1 free Port
+**Requirements**: PHP8 & PHP [Mailparse extension](https://www.php.net/manual/en/book.mailparse.php)
 
 ![backend_module](Documentation/example_backend_module.jpg)
 
