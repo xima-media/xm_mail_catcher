@@ -104,14 +104,14 @@
 									</f:if>
 									<f:if condition="{mail.attachments}">
 										<div class="form-section hidden" data-content-type="files" data-m-id="{i.cycle}">
-											<p>
-												<f:for each="{mail.attachments}" as="file">{mail.publicPath}
+											<f:for each="{mail.attachments}" as="file">{mail.publicPath}
+												<p>
 													<a href="{file.publicPath}" class="btn btn-outline-primary" download>
 														<core:icon identifier="actions-download" size="small"/>
 														{file.filename} ({file.filesize->f:format.bytes()})
 													</a>
-												</f:for>
-											</p>
+												</p>
+											</f:for>
 										</div>
 									</f:if>
 								</div>

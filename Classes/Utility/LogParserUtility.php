@@ -2,6 +2,8 @@
 
 namespace Xima\XmMailCatcher\Utility;
 
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException;
+use TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException;
 use TYPO3\CMS\Core\Configuration\ExtensionConfiguration;
 use TYPO3\CMS\Core\Core\Environment;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -33,8 +35,8 @@ class LogParserUtility
     }
 
     /**
-     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationExtensionNotConfiguredException
-     * @throws \TYPO3\CMS\Core\Configuration\Exception\ExtensionConfigurationPathDoesNotExistException
+     * @throws ExtensionConfigurationExtensionNotConfiguredException
+     * @throws ExtensionConfigurationPathDoesNotExistException
      */
     protected function emptyLogFile(): void
     {
@@ -173,7 +175,12 @@ class LogParserUtility
             $filepath = $folder . '/' . $filename;
             $data = self::removeLinesFromStart($messagePart, 5);
             $data = str_replace(['\r', '\n'], '', $data);
-            $file = base64_decode($data);
+            $file = base64_decode($data, true);
+
+            if (!$file) {
+                return;
+            }
+
             file_put_contents($filepath, $file);
             $size = filesize($filepath) ?: 0;
 
