@@ -137,7 +137,7 @@ class LogParserUtility
             mkdir($folder);
         }
 
-        foreach($attachments as $attachment) {
+        foreach ($attachments as $attachment) {
             $attachmentDto = new MailAttachment();
 
             // get filename from content disposition
