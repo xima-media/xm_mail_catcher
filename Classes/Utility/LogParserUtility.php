@@ -191,9 +191,9 @@ class LogParserUtility
 
     public function loadMessages(): void
     {
-        $messageFiles = array_filter((array)scandir(self::getTempPath()), function ($filename) {
+        $messageFiles = array_reverse(array_filter((array)scandir(self::getTempPath()), function ($filename) {
             return strpos((string)$filename, '.json');
-        });
+        }));
 
         $this->messages = [];
 
@@ -205,7 +205,7 @@ class LogParserUtility
     }
 
     /**
-     * @return \Xima\XmMailCatcher\Domain\Model\Dto\MailMessage[]
+     * @return MailMessage[]
      */
     public function getMessages(): array
     {
