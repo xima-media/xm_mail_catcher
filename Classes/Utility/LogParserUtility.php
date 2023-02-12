@@ -116,7 +116,7 @@ class LogParserUtility
 
         $headers = $parser->getHeaders();
         $dto->subject = $headers['subject'] ?? '';
-        $dto->messageId = $headers['message-id'] ?? '';
+        $dto->messageId = md5($headers['message-id'] ?? '');
         try {
             $dto->date = new JsonDateTime($headers['date']);
         } catch (\Exception $e) {
@@ -125,45 +125,44 @@ class LogParserUtility
         $dto->bodyPlain = mb_convert_encoding($parser->getMessageBody('text'), 'UTF-8', 'auto');
         $dto->bodyHtml = mb_convert_encoding($parser->getMessageBody('html'), 'UTF-8', 'auto');
 
-        return $dto;
-    }
-
-    protected static function createFile(string $messagePart, MailMessage $dto): void
-    {
-        try {
-            preg_match('/(?:filename=)(.+)(?:\r\n)/', $messagePart, $filenameParts);
-            $filename = $filenameParts[1];
-
-            $folder = self::getTempPath() . $dto->messageId;
-            if (!file_exists($folder)) {
-                mkdir($folder);
-            }
-
-            $filepath = $folder . '/' . $filename;
-            $data = self::removeLinesFromStart($messagePart, 5);
-            $data = str_replace(['\r', '\n'], '', $data);
-            $file = base64_decode($data, true);
-
-            if (!$file) {
-                return;
-            }
-
-            file_put_contents($filepath, $file);
-            $size = filesize($filepath) ?: 0;
-
-            $mailAttachment = new MailAttachment();
-            $mailAttachment->filename = $filename;
-            $mailAttachment->filesize = $size;
-            $mailAttachment->publicPath = self::getPublicPath() . $dto->messageId . '/' . $filename;
-
-            $dto->attachments[] = $mailAttachment;
-        } catch (\Exception $e) {
+        $folder = self::getTempPath() . $dto->messageId;
+        if (!file_exists($folder)) {
+            mkdir($folder);
         }
-    }
 
-    public static function removeLinesFromStart(string $string, int $lineCount): string
-    {
-        return implode(PHP_EOL, array_slice(explode(PHP_EOL, $string), ($lineCount + 1)));
+        $attachments = $parser->getAttachments();
+
+        $folder = self::getTempPath() . $dto->messageId;
+        if (count($attachments) && !file_exists($folder)) {
+            mkdir($folder);
+        }
+
+        foreach($attachments as $attachment) {
+            $attachmentDto = new MailAttachment();
+
+            // get filename from content disposition
+            $filename = $attachment->getFilename();
+            if (str_starts_with($filename, 'noname')) {
+                $headers = $attachment->getHeaders();
+                $disposition = $headers['content-disposition'] ?? '';
+                preg_match('/(?:; filename )(.+)/', $disposition, $filenameParts);
+                $filename = $filenameParts[1];
+            }
+            $attachmentDto->filename = $filename;
+
+            // calculate public path
+            $fullFilePath = $attachment->save($folder, Parser::ATTACHMENT_RANDOM_FILENAME);
+            $publicPath = str_replace(Environment::getPublicPath(), '', $fullFilePath);
+            $attachmentDto->publicPath = $publicPath;
+
+            // get file size
+            $fileSize = filesize($fullFilePath) ?: 0;
+            $attachmentDto->filesize = $fileSize;
+
+            $dto->attachments[] = $attachmentDto;
+        }
+
+        return $dto;
     }
 
     public static function getPublicPath(): string
@@ -187,7 +186,7 @@ class LogParserUtility
         $this->loadLogFile();
         $this->extractMessages();
         $this->writeMessagesToFile();
-        $this->emptyLogFile();
+        //$this->emptyLogFile();
     }
 
     public function loadMessages(): void
