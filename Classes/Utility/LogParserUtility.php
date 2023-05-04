@@ -167,7 +167,7 @@ class LogParserUtility
 
     public static function getPublicPath(): string
     {
-        return '/typo3temp/xm_mail_catcher/';
+        return '/typo3temp/assets/xm_mail_catcher/';
     }
 
     public static function getTempPath(): string
